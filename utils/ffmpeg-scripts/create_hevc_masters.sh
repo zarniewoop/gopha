@@ -1,0 +1,92 @@
+ffmpeg -fflags +genpts \
+  -f rawvideo -pix_fmt yuv444p -s:v 1920x1080 -r 50 -i creamy_detail_1X-50p-444p-1920x1080.yuv\
+  -i trance.aac \
+  -map 0:v:0 -map 1:a:0 -map 1:a:0 -map 1:a:0 -map 1:a:0 -dn \
+  -vf "setsar=1,fps=50,scale=in_color_matrix=bt709:out_color_matrix=bt709,format=yuv420p" \
+  -vsync cfr -r 50 \
+  -c:v hevc_videotoolbox \
+  -profile:v main \
+  -tag:v hvc1 \
+  -b:v 22M -maxrate 22M -minrate 22M -bufsize 44M \
+  -g 100 -keyint_min 50 -sc_threshold 0 \
+  -color_range tv \
+  -color_primaries bt709 -color_trc bt709 -colorspace bt709 \
+  -c:a copy \
+  -shortest \
+  -metadata:s:a:0 language=eng -metadata:s:a:0 title="Japanese" \
+  -metadata:s:a:1 language=eng -metadata:s:a:1 title="English" \
+  -metadata:s:a:2 language=eng -metadata:s:a:2 title="Cantonese" \
+  -metadata:s:a:3 language=eng -metadata:s:a:3 title="Latin" \
+  -f mpegts -muxrate 24000000 -pat_period 0.5 -sdt_period 0.5 \
+  -metadata service_name="GophaGen test seq 1A-50p" \
+  -metadata service_provider="Ideal Systems Asia Pacific" \
+  creamy_detail-1A-50p-420@22Mbps_main-1920x1080-hevc.ts &&\
+ffmpeg -fflags +genpts \
+  -f rawvideo -pix_fmt yuv444p -s:v 1920x1080 -r 60 -i creamy_detail_1Y-60p-444p-1920x1080.yuv\
+  -i trance.aac \
+  -map 0:v:0 -map 1:a:0 -map 1:a:0 -map 1:a:0 -map 1:a:0 -dn \
+  -vf "setsar=1,fps=60,scale=in_color_matrix=bt709:out_color_matrix=bt709,format=yuv420p" \
+  -vsync cfr -r 60 \
+  -c:v hevc_videotoolbox \
+  -profile:v main \
+  -tag:v hvc1 \
+  -b:v 22M -maxrate 22M -minrate 22M -bufsize 44M \
+  -g 120 -keyint_min 60 -sc_threshold 0 \
+  -color_range tv \
+  -color_primaries bt709 -color_trc bt709 -colorspace bt709 \
+  -c:a copy \
+  -shortest \
+  -metadata:s:a:0 language=eng -metadata:s:a:0 title="Japanese" \
+  -metadata:s:a:1 language=eng -metadata:s:a:1 title="English" \
+  -metadata:s:a:2 language=eng -metadata:s:a:2 title="Cantonese" \
+  -metadata:s:a:3 language=eng -metadata:s:a:3 title="Latin" \
+  -f mpegts -muxrate 24000000 -pat_period 0.5 -sdt_period 0.5 \
+  -metadata service_name="GophaGen test seq 1B-60p" \
+  -metadata service_provider="Ideal Systems Asia Pacific" \
+  creamy_detail-1B-60p-420@22Mbps_main-1920x1080-hevc.ts &&\
+ffmpeg -fflags +genpts \
+  -f rawvideo -pix_fmt yuv444p -s:v 1920x1080 -r 50 -i creamy_detail_2X-50p-444p-1920x1080.yuv\
+  -i trance.aac \
+  -map 0:v:0 -map 1:a:0 -map 1:a:0 -map 1:a:0 -map 1:a:0 -dn \
+  -vf "setsar=1,fps=50,scale=in_color_matrix=bt709:out_color_matrix=bt709,format=yuv420p" \
+  -vsync cfr -r 50 \
+  -c:v hevc_videotoolbox \
+  -profile:v main \
+  -tag:v hvc1 \
+  -b:v 22M -maxrate 22M -minrate 22M -bufsize 44M \
+  -g 100 -keyint_min 50 -sc_threshold 0 \
+  -color_range tv \
+  -color_primaries bt709 -color_trc bt709 -colorspace bt709 \
+  -c:a copy \
+  -shortest \
+  -metadata:s:a:0 language=eng -metadata:s:a:0 title="Japanese" \
+  -metadata:s:a:1 language=eng -metadata:s:a:1 title="English" \
+  -metadata:s:a:2 language=eng -metadata:s:a:2 title="Cantonese" \
+  -metadata:s:a:3 language=eng -metadata:s:a:3 title="Latin" \
+  -f mpegts -muxrate 24000000 -pat_period 0.5 -sdt_period 0.5 \
+  -metadata service_name="GophaGen test seq 2A-50p" \
+  -metadata service_provider="Ideal Systems Asia Pacific" \
+  creamy_detail-2A-50p-420@22Mbps_main-1920x1080-hevc.ts &&\
+ffmpeg -fflags +genpts \
+  -f rawvideo -pix_fmt yuv444p -s:v 1920x1080 -r 60 -i creamy_detail_2Y-60p-444p-1920x1080.yuv\
+  -i trance.aac \
+  -map 0:v:0 -map 1:a:0 -map 1:a:0 -map 1:a:0 -map 1:a:0 -dn \
+  -vf "setsar=1,fps=60,scale=in_color_matrix=bt709:out_color_matrix=bt709,format=yuv420p" \
+  -vsync cfr -r 60 \
+  -c:v hevc_videotoolbox \
+  -profile:v main \
+  -tag:v hvc1 \
+  -b:v 22M -maxrate 22M -minrate 22M -bufsize 44M \
+  -g 120 -keyint_min 60 -sc_threshold 0 \
+  -color_range tv \
+  -color_primaries bt709 -color_trc bt709 -colorspace bt709 \
+  -c:a copy \
+  -shortest \
+  -metadata:s:a:0 language=eng -metadata:s:a:0 title="Japanese" \
+  -metadata:s:a:1 language=eng -metadata:s:a:1 title="English" \
+  -metadata:s:a:2 language=eng -metadata:s:a:2 title="Cantonese" \
+  -metadata:s:a:3 language=eng -metadata:s:a:3 title="Latin" \
+  -f mpegts -muxrate 24000000 -pat_period 0.5 -sdt_period 0.5 \
+  -metadata service_name="GophaGen test seq 2B-60p" \
+  -metadata service_provider="Ideal Systems Asia Pacific" \
+  creamy_detail-2B-60p-420@22Mbps_main-1920x1080-hevc.ts 

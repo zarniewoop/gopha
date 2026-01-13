@@ -1,0 +1,55 @@
+{
+  "baseUrl": "",
+  "groups": [
+    {
+      "title": "TotalMedia Live 50p-60i Intelligent Mode",
+      "items": [
+        {
+          "label": "Sequence 10 - AVC encoding 22Mbps px:420",
+          "url": "https://looking-glass-tool.s3.amazonaws.com/public-streams/totalmedia-live-encoder/50p-to-60i/Intelligent/HLS_repacks/dut-1-cd10-420-50p-to-60I-HQ_AVC_hls.m3u8"
+        },
+        {
+          "label": "Sequence 10 - HEVC encoding 22Mbps px:420",
+          "url": "https://looking-glass-tool.s3.amazonaws.com/public-streams/totalmedia-live-encoder/50p-to-60i/Intelligent/HLS_repacks/dut-1-cd10-420-50p-to-60I-HQ_HEVC_hls.m3u8"
+        },
+        {
+          "label": "Sequence 11 - AVC encoding 22Mbps px:420",
+          "url": "https://looking-glass-tool.s3.amazonaws.com/public-streams/totalmedia-live-encoder/50p-to-60i/Intelligent/HLS_repacks/dut-1-cd11-420-50p-to-60I-HQ_AVC_hls.m3u8"
+        },
+        {
+          "label": "Sequence 11 - HEVC encoding 22Mbps px:420",
+          "url": "https://looking-glass-tool.s3.amazonaws.com/public-streams/totalmedia-live-encoder/50p-to-60i/Intelligent/HLS_repacks/dut-1-cd11-420-50p-to-60I-HQ_HEVC_hls.m3u8"
+        },
+        {
+          "label": "Tennis Sequence - HEVC encoding 22Mbps px:420",
+          "url": "https://looking-glass-tool.s3.amazonaws.com/public-streams/totalmedia-live-encoder/50p-to-60i/Intelligent/HLS_repacks/dut-1-tennis-420-50p-to-60I-HQ_HEVC_hls.m3u8"
+        }
+      ]
+    },
+    {
+      "title": "TotalMedia Live 50p-60i Performance Mode",
+      "items": [
+        {
+          "label": "Sequence 10 - AVC encoding 22Mbps px:420",
+          "url": "https://looking-glass-tool.s3.amazonaws.com/public-streams/totalmedia-live-encoder/50p-to-60i/performance/HLS_repacks/dut-1-cd10-420-50p-to-60I-PERF_AVC_hls.m3u8"
+        },
+        {
+          "label": "Sequence 10 - HEVC encoding 22Mbps px:420",
+          "url": "https://looking-glass-tool.s3.amazonaws.com/public-streams/totalmedia-live-encoder/50p-to-60i/performance/HLS_repacks/dut-1-cd10-420-50p-to-60I-PERF_HEVC_hls.m3u8"
+        },
+        {
+          "label": "Sequence 11 - AVC encoding 22Mbps px:420",
+          "url": "https://looking-glass-tool.s3.amazonaws.com/public-streams/totalmedia-live-encoder/50p-to-60i/performance/HLS_repacks/dut-1-cd11-420-50p-to-60I-PERF_AVC_hls.m3u8"
+        },
+        {
+          "label": "Sequence 11 - HEVC encoding 22Mbps px:420",
+          "url": "https://looking-glass-tool.s3.amazonaws.com/public-streams/totalmedia-live-encoder/50p-to-60i/performance/HLS_repacks/dut-1-cd11-420-50p-to-60I-PERF_HEVC_hls.m3u8"
+        },
+        {
+          "label": "Tennis Sequence - HEVC encoding 22Mbps px:420",
+          "url": "https://looking-glass-tool.s3.amazonaws.com/public-streams/totalmedia-live-encoder/50p-to-60i/performance/HLS_repacks/dut-1-tennis-420-50p-to-60I-PERF_HEVC_hls.m3u8"
+        }
+      ]
+    }
+  ]
+}

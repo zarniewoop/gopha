@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dual Stream Comparator</title>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Optional: if you split HUD styles out; otherwise omit -->
+  <link rel="stylesheet" href="hud.css" />
+  <!-- hls.js (optional; only used for .m3u8) -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.15/dist/hls.min.js" defer></script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <div class="title">Dual Stream Comparator</div>
+          <div class="subtitle">Load two URLs, wipe to compare, and keep them in sync</div>
+        </div>
+      </div>
+      <a id="permalink" class="btn ghost" href="#">Permalink</a>
+    </div>
+
+    <div class="card">
+      <!-- Inputs -->
+      <div class="inputs">
+        <div class="field">
+          <div class="label">Source A URL</div>
+          <div class="row">
+            <input id="urlA" type="text" placeholder="https://... (.mp4, .webm, .m3u8)" />
+            <button id="loadA" class="btn">Load A</button>
+          </div>
+        </div>
+        <div class="field">
+          <div class="label">Source B URL</div>
+          <div class="row">
+            <input id="urlB" type="text" placeholder="https://... (.mp4, .webm, .m3u8)" />
+            <button id="loadB" class="btn">Load B</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Video viewport -->
+      <div id="viewport" class="viewport">
+        <!-- Videos -->
+        <video id="vidA" class="video A" playsinline crossorigin="anonymous"></video>
+        <video id="vidB" class="video B" playsinline crossorigin="anonymous"></video>
+
+        <!-- Labels -->
+        <div class="badge tagA">A</div>
+        <div class="badge r tagB">B</div>
+
+        <!-- Buffer bars (HUD) -->
+        <div id="bufferBar" class="buffer">
+          <div class="barA"></div>
+          <div class="barB"></div>
+        </div>
+
+        <!-- Drift HUD -->
+        <div id="driftHud" class="hud"></div>
+
+        <!-- Play overlay (mobile unlock) -->
+        <div id="playOverlay" class="playOverlay">
+          <button class="btn">Tap to Play Both</button>
+        </div>
+
+        <!-- Wipe slider -->
+        <div class="slider-wrap">
+          <div id="handle" class="handle"></div>
+          <div id="knob" class="knob" role="slider" aria-label="Wipe Slider" tabindex="0"></div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls">
+        <div class="group">
+          <button id="playPause" class="btn">Play</button>
+          <button id="restart" class="btn ghost">Restart</button>
+          <span id="timeLabel" class="pill">00:00 / 00:00</span>
+        </div>
+
+        <div class="seek">
+          <input id="seek" type="range" min="0" max="1000" value="0" />
+        </div>
+
+        <div class="group">
+          <button id="loadDemo" class="btn secondary">Load Demo</button>
+        </div>
+      </div>
+
+      <!-- Offsets + nudges -->
+      <div class="controls">
+        <div class="group offsets">
+          <div class="row">
+            <input type="text" id="offsetA" placeholder="A offset (s)" />
+            <div class="nudges">
+              <button class="btn ghost" id="nudgeA01m">-0.1</button>
+              <button class="btn ghost" id="nudgeA01p">+0.1</button>
+              <button class="btn ghost" id="nudgeA1m">-1</button>
+              <button class="btn ghost" id="nudgeA1p">+1</button>
+            </div>
+          </div>
+          <div class="row">
+            <input type="text" id="offsetB" placeholder="B offset (s)" />
+            <div class="nudges">
+              <button class="btn ghost" id="nudgeB01m">-0.1</button>
+              <button class="btn ghost" id="nudgeB01p">+0.1</button>
+              <button class="btn ghost" id="nudgeB1m">-1</button>
+              <button class="btn ghost" id="nudgeB1p">+1</button>
+            </div>
+          </div>
+          <button class="btn secondary" id="applyOffsets">Apply</button>
+        </div>
+
+        <!-- Frame snap and FPS inputs -->
+        <div class="group fpsInputs">
+          <label class="pill" for="snapFrames" style="cursor:pointer;">
+            <input type="checkbox" id="snapFrames" style="margin-right:8px;" />
+            Snap seeks to frames
+          </label>
+          <input type="text" id="fpsA" placeholder="fps A (e.g. 29.97 or 30000/1001)" />
+          <input type="text" id="fpsB" placeholder="fps B (e.g. 25)" />
+        </div>
+      </div>
+
+      <!-- Status -->
+      <div id="status" class="status" aria-live="polite"></div>
+    </div>
+
+    <div class="footer">
+      <div class="links">
+        <span>Tips: Space to play/pause, J/L to seek ±5s, drag the round knob to move the wipe.</span>
+      </div>
+      <div class="links">
+        <a href="#" id="help">Help</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

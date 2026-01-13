@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Ideal Systems Ref Player</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@byomakase/omakase-player@latest/dist/omakase-player.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@byomakase/omakase-player@latest/dist/style.min.css">
+
+  <style>
+    :root{
+      --bg-0:#0f1216;
+      --bg-1:#151a21;
+      --bg-2:#1b2230;
+      --accent:#3aa0ff;
+      --accent-2:#7cc4ff;
+      --text:#e6eef8;
+      --muted:#9fb2c7;
+      --good:#39d98a;
+      --warn:#ffb020;
+      --bad:#ff6b6b;
+      --radius:14px;
+      --radius-sm:10px;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --focus:0 0 0 3px rgba(58,160,255,.35);
+    }
+    html,body{height:100%}
+    body{
+      margin:0;
+      background: radial-gradient(1200px 800px at 75% -10%, rgba(58,160,255,.15), transparent 60%),
+                  radial-gradient(900px 600px at -10% 120%, rgba(52,84,122,.25), transparent 60%),
+                  var(--bg-0);
+      color:var(--text);
+      font: 15px/1.4 ui-sans-serif, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans";
+    }
+    .wrap{
+      max-width:1100px;
+      margin: 24px auto;
+      padding: 0 14px 28px;
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .brand{display:flex;align-items:center;gap:12px;}
+    .logo{
+      width:42px;height:42px;border-radius:12px;
+      background: linear-gradient(135deg, var(--accent), #1d6bff 60%, #0c3a79);
+      box-shadow: var(--shadow);
+      position:relative;overflow:hidden;
+    }
+    .logo::after{
+      content:""; position:absolute; inset:2px;
+      border-radius:10px; background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0) 60%);
+      mix-blend:overlay;
+    }
+    .title{ font-weight:700; letter-spacing:.2px; font-size:18px; }
+    .sub{ color:var(--muted); font-size:12.5px; }
+
+    .panel{
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0));
+      border:1px solid rgba(120,160,200,.15);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .controls{
+      padding:14px;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:12px;
+    }
+    @media (min-width:720px){
+      .controls{
+        grid-template-columns: 1.6fr .9fr 1fr auto;
+        align-items:end;
+      }
+    }
+    label{display:block; font-size:12px; color:var(--muted); margin:0 0 6px;}
+    input[type="url"], select{
+      width:100%;
+      background: var(--bg-2);
+      color: var(--text);
+      border:1px solid rgba(120,160,200,.18);
+      border-radius: var(--radius-sm);
+      padding:12px 12px;
+      outline:none;
+      transition: border .15s ease, box-shadow .15s ease, background .2s ease;
+    }
+    input[type="url"]:focus, select:focus{
+      border-color: var(--accent);
+      box-shadow: var(--focus);
+      background: #1d2432;
+    }
+    select:disabled{opacity:.65; cursor:not-allowed;}
+    .btn{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:12px 16px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(180deg, var(--accent), #1d6bff);
+      color:white; border:none; cursor:pointer;
+      font-weight:600; letter-spacing:.2px;
+      box-shadow: 0 6px 18px rgba(58,160,255,.35);
+      transition: transform .05s ease, filter .15s ease;
+      white-space:nowrap;
+    }
+    .btn:hover{ filter:brightness(1.05) }
+    .btn:active{ transform: translateY(1px) }
+    .btn.secondary{
+      background: #2a3550; box-shadow:none;
+      color: var(--accent-2); border:1px solid rgba(120,160,200,.25);
+    }
+    .status{
+      display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+      padding:10px 14px; color:var(--muted); font-size:13px;
+    }
+    .dot{ width:8px; height:8px; border-radius:50%; background:var(--muted) }
+    .dot.playing{ background:var(--good) }
+    .dot.error{ background:var(--bad) }
+    .dot.loading{ background:var(--warn) }
+
+    .player-wrap{ padding:0; overflow:hidden; }
+    .player-surface{
+      position:relative;
+      background:#0b0f16;
+      border-radius: var(--radius);
+      overflow:hidden;
+      border:1px solid rgba(120,160,200,.14);
+    }
+
+    .aspect{
+      position:relative;
+      width:100%;
+      aspect-ratio: var(--dar, 16 / 9);
+      background: radial-gradient(600px 300px at 40% 20%, rgba(58,160,255,.08), transparent 60%), #0b0f16;
+      overflow:hidden;
+      min-height: 0;
+    }
+
+    /* Mount pinned to the aspect-ratio box */
+    #omakase-player{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      display:block;
+      overflow:hidden;
+    }
+
+    /*
+      IMPORTANT:
+      Do NOT force height:100% on Media Chrome elements (media-controller/media-theme/etc.)
+      or you'll break/hide the controls. Only size the Omakase wrapper & video area.
+    */
+    #omakase-player .omakase-player,
+    #omakase-player .omakase-player-wrapper,
+    #omakase-player .omakase-video{
+      width:100% !important;
+      height:100% !important;
+      max-width:none !important;
+      max-height:none !important;
+    }
+
+    /* Video sizing (only affects light-DOM <video>) */
+    #omakase-player video{
+      width:100% !important;
+      height:100% !important;
+      object-fit: var(--fit, contain) !important;
+      object-position:center center !important;
+      display:block !important;
+      background:#000;
+    }
+
+    #omakase-player canvas,
+    #omakase-player svg{
+      width:100% !important;
+      height:100% !important;
+      display:block !important;
+      background:#000;
+    }
+
+    footer{
+      display:flex; justify-content:space-between; flex-wrap:wrap;
+      gap:10px; padding:10px 14px; color:var(--muted); font-size:12.5px;
+    }
+    .kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      background:#0f1520; border:1px solid rgba(120,160,200,.25);
+      padding:2px 6px; border-radius:6px; color:#cfe5ff;
+    }
+    .mini{ font-size:11.5px; color:var(--muted); }
+
+    .row2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    @media (max-width:719px){
+      .row2{ grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <div class="title">Ideal Systems Video Player Tool</div>
+          <div class="sub">Samples of product performance</div>
+        </div>
+      </div>
+      <button class="btn secondary" id="btn-reset" title="Reset form and stop playback">Reset</button>
+    </header>
+
+    <section class="panel controls" aria-label="Load controls">
+      <div>
+        <label for="stream">Stream</label>
+        <select id="stream" disabled>
+          <option value="">Loading manifest…</option>
+        </select>
+        <div class="mini" style="margin-top:6px;">
+          Streams are loaded from <span class="kbd">public-streams/manifest.json</span>
+        </div>
+      </div>
+
+      <div>
+        <label for="autoplay">Autoplay</label>
+        <select id="autoplay">
+          <option value="on" selected>On (muted)</option>
+          <option value="off">Off</option>
+        </select>
+      </div>
+
+      <div class="row2" aria-label="Display controls">
+        <div>
+          <label for="dar">DAR override</label>
+          <select id="dar" title="Override display aspect ratio">
+            <option value="auto" selected>Auto</option>
+            <option value="16/9">16:9</option>
+            <option value="4/3">4:3</option>
+            <option value="1/1">1:1</option>
+            <option value="9/16">9:16</option>
+            <option value="2.39/1">2.39:1</option>
+          </select>
+        </div>
+        <div>
+          <label for="fit">Scale mode</label>
+          <select id="fit" title="How the video fills the frame">
+            <option value="contain" selected>Contain</option>
+            <option value="cover">Cover</option>
+            <option value="fill">Fill (stretch)</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <button class="btn" id="btn-load" title="Load the selected stream into the player">▶ Load</button>
+        <button class="btn secondary" id="btn-unload" title="Unload the current stream">⏹ Stop</button>
+      </div>
+    </section>
+
+    <section class="panel status" aria-live="polite" id="status">
+      <span class="dot" id="dot"></span>
+      <span id="status-text">Idle. Select a stream and press Load.</span>
+    </section>
+
+    <section class="panel player-wrap">
+      <div class="player-surface">
+        <div class="aspect" id="aspect">
+          <div id="omakase-player"></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="panel">
+      <div style="padding:10px 14px;">
+        <div class="mini">Tip: Press <span class="kbd">Enter</span> on the stream dropdown to load quickly.</div>
+      </div>
+      <div style="padding:10px 14px;">
+        <span class="mini">Omakase Player 2026</span>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const el = (id) => document.getElementById(id);
+
+    const MANIFEST_URL = 'public-streams/manifest.json';
+
+    const streamSelect = el('stream');
+    const autoSel = el('autoplay');
+    const btnLoad = el('btn-load');
+    const btnUnload = el('btn-unload');
+    const btnReset = el('btn-reset');
+    const dot = el('dot');
+    const statusText = el('status-text');
+
+    const darSel = el('dar');
+    const fitSel = el('fit');
+    const aspectEl = el('aspect');
+
+    let omakasePlayer = null;
+
+    function ensurePlayer() {
+      if (!window.omakase || !omakase.OmakasePlayer) {
+        setStatus('Omakase library not available. Check script tags.', 'error');
+        throw new Error('Omakase UMD not found');
+      }
+      if (!omakasePlayer) {
+        omakasePlayer = new omakase.OmakasePlayer({
+          playerHTMLElementId: 'omakase-player'
+        });
+      }
+      return omakasePlayer;
+    }
+
+    function setStatus(text, state) {
+      statusText.textContent = text;
+      dot.className = 'dot' + (state ? ' ' + state : '');
+    }
+
+    function isHlsUrl(u){
+      return /\.m3u8(\?|$)/i.test(String(u || ''));
+    }
+
+    function applyDisplayOverrides() {
+      const dar = (darSel?.value || 'auto').trim();
+      if (dar === 'auto') aspectEl.style.removeProperty('--dar');
+      else aspectEl.style.setProperty('--dar', dar.replace('/', ' / '));
+
+      const fit = (fitSel?.value || 'contain').trim();
+      aspectEl.style.setProperty('--fit', fit);
+    }
+
+    async function loadManifest(){
+      streamSelect.disabled = true;
+      streamSelect.innerHTML = '<option value="">Loading manifest…</option>';
+
+      try{
+        const res = await fetch(MANIFEST_URL, { cache: 'no-cache' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        const baseUrl = String(data?.baseUrl || '').replace(/\/$/, '');
+        const groups = Array.isArray(data?.groups) ? data.groups : [];
+
+        streamSelect.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Select a stream…';
+        streamSelect.appendChild(placeholder);
+
+        let count = 0;
+        for (const g of groups){
+          const title = String(g?.title || 'Streams');
+          const items = Array.isArray(g?.items) ? g.items : [];
+          const optgroup = document.createElement('optgroup');
+          optgroup.label = title;
+
+          for (const it of items){
+            const rawUrl = it?.url;
+            if (!rawUrl) continue;
+            const fullUrl = baseUrl ? `${baseUrl}/${rawUrl}` : String(rawUrl);
+            if (!isHlsUrl(fullUrl)) continue;
+
+            const opt = document.createElement('option');
+            opt.value = fullUrl;
+            opt.textContent = it?.label ? String(it.label) : fullUrl;
+            optgroup.appendChild(opt);
+            count++;
+          }
+          if (optgroup.children.length) streamSelect.appendChild(optgroup);
+        }
+
+        streamSelect.disabled = false;
+        setStatus(`Manifest loaded (${count} streams). Select a stream and press Load.`, null);
+
+        const firstReal = streamSelect.querySelector('option[value]:not([value=""])');
+        if (firstReal) streamSelect.value = firstReal.value;
+      } catch (e){
+        console.error(e);
+        streamSelect.disabled = true;
+        streamSelect.innerHTML = '<option value="">Manifest failed to load</option>';
+        setStatus('Manifest failed to load. Check public-streams/manifest.json', 'error');
+      }
+    }
+
+    async function loadStream(url) {
+      try {
+        if (!url) throw new Error('Select a stream first');
+        if (!isHlsUrl(url)) throw new Error('Selected URL is not an .m3u8');
+
+        const player = ensurePlayer();
+        setStatus('Loading stream…', 'loading');
+
+        player.loadVideo(url).subscribe({
+          next: (video) => {
+            setStatus(
+              `Video loaded. Duration: ${video.duration?.toFixed?.(2) ?? video.duration} sec, totalFrames: ${video.totalFrames ?? 'n/a'}`,
+              'playing'
+            );
+
+            applyDisplayOverrides();
+
+            // Best-effort autoplay (works only if <video> is in light DOM)
+            if (autoSel.value === 'on') {
+              const vid = document.querySelector('#omakase-player video');
+              if (vid) {
+                vid.muted = true;
+                vid.playsInline = true;
+                vid.play().catch(()=>{});
+              }
+            }
+          },
+          error: (err) => {
+            setStatus('Failed to load: ' + (err?.message || String(err)), 'error');
+          }
+        });
+      } catch (e) {
+        setStatus('Error: ' + (e?.message || String(e)), 'error');
+      }
+    }
+
+    function unloadStream() {
+      try {
+        if (omakasePlayer && typeof omakasePlayer.destroy === 'function') {
+          omakasePlayer.destroy();
+          omakasePlayer = null;
+        }
+
+        // Ensure mount exists for a clean re-init
+        const mount = document.getElementById('omakase-player');
+        if (!mount) {
+          const aspect = document.querySelector('.aspect');
+          const div = document.createElement('div');
+          div.id = 'omakase-player';
+          aspect.appendChild(div);
+        }
+
+        setStatus('Stopped. Player reset.', null);
+      } catch (e) {
+        setStatus('Error while stopping: ' + (e?.message || String(e)), 'error');
+      }
+    }
+
+    function resetForm() {
+      autoSel.value = 'on';
+      streamSelect.value = '';
+      darSel.value = 'auto';
+      fitSel.value = 'contain';
+      applyDisplayOverrides();
+      unloadStream();
+      setStatus('Idle. Select a stream and press Load.', null);
+    }
+
+    btnLoad.addEventListener('click', () => loadStream((streamSelect.value || '').trim()));
+    btnUnload.addEventListener('click', unloadStream);
+    btnReset.addEventListener('click', resetForm);
+
+    streamSelect.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        btnLoad.click();
+      }
+    });
+
+    darSel.addEventListener('change', applyDisplayOverrides);
+    fitSel.addEventListener('change', applyDisplayOverrides);
+    window.addEventListener('resize', applyDisplayOverrides);
+
+    applyDisplayOverrides();
+    loadManifest();
+    setStatus('Loading manifest…', 'loading');
+  </script>
+</body>
+</html>

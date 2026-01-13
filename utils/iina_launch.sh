@@ -1,0 +1,2 @@
+open -na "IINA" --args --mpv-speed=0.1 "creamy_detail-1A-50P-420@22Mbps_l4-2_high-1920x1080-h264.ts" &&\
+open -na "IINA" --args --mpv-speed=0.1 "creamy_detail-1B-60P-420@22Mbps_l4-2_high-1920x1080-h264.ts" 

@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Omakase Player • One-Page Tool</title>
+
+  <!-- Omakase prerequisites (UMD) -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@byomakase/omakase-player@latest/dist/omakase-player.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@byomakase/omakase-player@latest/dist/style.min.css">
+
+  <style>
+    :root{
+      --bg-0:#0f1216;
+      --bg-1:#151a21;
+      --bg-2:#1b2230;
+      --panel:#1f2937;
+      --accent:#3aa0ff;
+      --accent-2:#7cc4ff;
+      --text:#e6eef8;
+      --muted:#9fb2c7;
+      --good:#39d98a;
+      --warn:#ffb020;
+      --bad:#ff6b6b;
+      --radius:14px;
+      --radius-sm:10px;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --focus:0 0 0 3px rgba(58,160,255,.35);
+    }
+    html,body{height:100%}
+    body{
+      margin:0;
+      background: radial-gradient(1200px 800px at 75% -10%, rgba(58,160,255,.15), transparent 60%),
+                  radial-gradient(900px 600px at -10% 120%, rgba(52,84,122,.25), transparent 60%),
+                  var(--bg-0);
+      color:var(--text);
+      font: 15px/1.4 ui-sans-serif, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    }
+    .wrap{
+      max-width:1100px;
+      margin: 24px auto;
+      padding: 0 14px 28px;
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .brand{
+      display:flex;align-items:center;gap:12px;
+    }
+    .logo{
+      width:42px;height:42px;border-radius:12px;
+      background: linear-gradient(135deg, var(--accent), #1d6bff 60%, #0c3a79);
+      box-shadow: var(--shadow);
+      position:relative;overflow:hidden;
+    }
+    .logo::after{
+      content:""; position:absolute; inset:2px;
+      border-radius:10px; background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0) 60%);
+      mix-blend:overlay;
+    }
+    .title{ font-weight:700; letter-spacing:.2px; font-size:18px; }
+    .sub{ color:var(--muted); font-size:12.5px; }
+
+    .panel{
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0));
+      border:1px solid rgba(120,160,200,.15);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .controls{
+      padding:14px;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:12px;
+    }
+    @media (min-width:720px){
+      .controls{
+        grid-template-columns: 1.3fr .9fr .9fr auto;
+        align-items:end;
+      }
+    }
+    label{
+      display:block; font-size:12px; color:var(--muted); margin:0 0 6px;
+    }
+    input[type="url"], select{
+      width:100%;
+      background: var(--bg-2);
+      color: var(--text);
+      border:1px solid rgba(120,160,200,.18);
+      border-radius: var(--radius-sm);
+      padding:12px 12px;
+      outline:none;
+      transition: border .15s ease, box-shadow .15s ease, background .2s ease;
+    }
+    input[type="url"]:focus, select:focus{
+      border-color: var(--accent);
+      box-shadow: var(--focus);
+      background: #1d2432;
+    }
+    .btn{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:12px 16px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(180deg, var(--accent), #1d6bff);
+      color:white; border:none; cursor:pointer;
+      font-weight:600; letter-spacing:.2px;
+      box-shadow: 0 6px 18px rgba(58,160,255,.35);
+      transition: transform .05s ease, filter .15s ease;
+      white-space:nowrap;
+    }
+    .btn:hover{ filter:brightness(1.05) }
+    .btn:active{ transform: translateY(1px) }
+    .btn.secondary{
+      background: #2a3550; box-shadow:none;
+      color: var(--accent-2); border:1px solid rgba(120,160,200,.25);
+    }
+    .status{
+      display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+      padding:10px 14px; color:var(--muted); font-size:13px;
+    }
+    .dot{ width:8px; height:8px; border-radius:50%; background:var(--muted) }
+    .dot.playing{ background:var(--good) }
+    .dot.error{ background:var(--bad) }
+    .dot.loading{ background:var(--warn) }
+
+    .player-wrap{
+      padding:0;
+      overflow:hidden;
+    }
+    .player-surface{
+      position:relative;
+      background:#0b0f16;
+      border-radius: var(--radius);
+      overflow:hidden;
+      border:1px solid rgba(120,160,200,.14);
+    }
+    .aspect{
+      position:relative; width:100%;
+      aspect-ratio: 16 / 9;
+      background: radial-gradient(600px 300px at 40% 20%, rgba(58,160,255,.08), transparent 60%), #0b0f16;
+    }
+    #omakase-player{
+      position:absolute; inset:0;
+      width:100%; height:100%;
+      display:block;
+      contain:layout size style;
+    }
+    #omakase-player video,
+    #omakase-player canvas,
+    #omakase-player .video-container {
+      position:absolute !important;
+      inset:0 !important;
+      width:100% !important;
+      height:100% !important;
+      max-width:none !important;
+      max-height:none !important;
+      object-fit:contain;
+      display:block;
+    }
+    footer{
+      display:flex; justify-content:space-between; flex-wrap:wrap;
+      gap:10px; padding:10px 14px; color:var(--muted); font-size:12.5px;
+    }
+    .kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      background:#0f1520; border:1px solid rgba(120,160,200,.25);
+      padding:2px 6px; border-radius:6px; color:#cfe5ff;
+    }
+    .mini{ font-size:11.5px; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <div class="title">Omakase Player Tool</div>
+          <div class="sub">Sleek grey & blue UI • HLS playback via Omakase</div>
+        </div>
+      </div>
+      <button class="btn secondary" id="btn-reset" title="Reset form and stop playback">Reset</button>
+    </header>
+
+    <section class="panel controls" aria-label="Load controls">
+      <div>
+        <label for="url">Stream URL</label>
+        <input id="url" type="url" placeholder="https://example.com/stream.m3u8" spellcheck="false" />
+      </div>
+
+      <div>
+        <label for="fps">Frame rate</label>
+        <select id="fps">
+          <optgroup label="Film / Cinema">
+            <option value="23.976">23.976 (24000/1001)</option>
+            <option value="24">24.000</option>
+            <option value="25">25.000 (PAL/SECAM)</option>
+            <option value="30" selected>30.000</option>
+            <option value="48">48.000</option>
+            <option value="50">50.000</option>
+            <option value="60">60.000</option>
+          </optgroup>
+          <optgroup label="NTSC fractional">
+            <option value="29.97">29.97 (30000/1001)</option>
+            <option value="59.94">59.94 (60000/1001)</option>
+          </optgroup>
+          <optgroup label="High frame rates">
+            <option value="72">72.000</option>
+            <option value="75">75.000</option>
+            <option value="90">90.000</option>
+            <option value="100">100.000</option>
+            <option value="119.88">119.88 (120000/1001)</option>
+            <option value="120">120.000</option>
+            <option value="144">144.000</option>
+            <option value="240">240.000</option>
+          </optgroup>
+          <optgroup label="Animation / Web">
+            <option value="12">12.000</option>
+            <option value="15">15.000</option>
+            <option value="30">30.000</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div>
+        <label for="autoplay">Autoplay</label>
+        <select id="autoplay">
+          <option value="on" selected>On (muted)</option>
+          <option value="off">Off</option>
+        </select>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <button class="btn" id="btn-load" title="Load the stream into the player">▶ Load</button>
+        <button class="btn secondary" id="btn-unload" title="Unload the current stream">⏹ Stop</button>
+      </div>
+    </section>
+
+    <section class="panel status" aria-live="polite" id="status">
+      <span class="dot" id="dot"></span>
+      <span id="status-text">Idle. Paste a URL and press Load.</span>
+    </section>
+
+    <section class="panel player-wrap">
+      <div class="player-surface">
+        <div class="aspect">
+          <div id="omakase-player"></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="panel">
+      <div style="padding:10px 14px;">
+        <div class="mini">Tip: Press <span class="kbd">Enter</span> in the URL field to load quickly.</div>
+      </div>
+      <div style="padding:10px 14px;">
+        <span class="mini">Source: Omakase Player UMD with hls.js</span>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const el = (id) => document.getElementById(id);
+    const urlInput = el('url');
+    const fpsSel = el('fps');
+    const autoSel = el('autoplay');
+    const btnLoad = el('btn-load');
+    const btnUnload = el('btn-unload');
+    const btnReset = el('btn-reset');
+    const dot = el('dot');
+    const statusText = el('status-text');
+
+    const DEFAULT_URL = 'https://my-server.com/myvideo.m3u8';
+    let omakasePlayer = null;
+
+    function ensurePlayer() {
+      if (!window.omakase || !omakase.OmakasePlayer) {
+        setStatus('Omakase library not available. Check script tags.', 'error');
+        throw new Error('Omakase UMD not found');
+      }
+      if (!omakasePlayer) {
+        omakasePlayer = new omakase.OmakasePlayer({
+          playerHTMLElementId: 'omakase-player'
+        });
+      }
+      return omakasePlayer;
+    }
+
+    function setStatus(text, state) {
+      statusText.textContent = text;
+      dot.className = 'dot' + (state ? ' ' + state : '');
+    }
+
+    function parseFPS() {
+      const num = Number(fpsSel.value);
+      return Number.isFinite(num) && num > 0 ? num : null;
+    }
+
+    async function loadStream(url) {
+      try {
+        if (!url) throw new Error('Missing URL');
+        const fps = parseFPS();
+        const player = ensurePlayer();
+        setStatus('Loading stream…', 'loading');
+
+        const sub = player.loadVideo(url).subscribe({
+          next: (video) => {
+            setStatus(`Video loaded. Duration: ${video.duration?.toFixed?.(2) ?? video.duration} sec, totalFrames: ${video.totalFrames ?? 'n/a'}`, 'playing');
+            if (autoSel.value === 'on') {
+              try {
+                const vid = document.querySelector('#omakase-player video');
+                if (vid) {
+                  vid.muted = true;
+                  vid.playsInline = true;
+                  vid.dataset.selectedFps = String(fps ?? '');
+                  vid.play().catch(()=>{});
+                }
+              } catch {}
+            }
+          },
+          error: (err) => {
+            setStatus('Failed to load: ' + (err?.message || String(err)), 'error');
+          }
+        });
+        window._omakaseSub = sub;
+      } catch (e) {
+        setStatus('Error: ' + (e?.message || String(e)), 'error');
+      }
+    }
+
+    function unloadStream() {
+      try {
+        if (omakasePlayer && typeof omakasePlayer.destroy === 'function') {
+          omakasePlayer.destroy();
+          omakasePlayer = null;
+        }
+        const mount = document.getElementById('omakase-player');
+        if (!mount) {
+          const aspect = document.querySelector('.aspect');
+          const div = document.createElement('div');
+          div.id = 'omakase-player';
+          aspect.appendChild(div);
+        }
+        setStatus('Stopped. Player reset.', null);
+      } catch (e) {
+        setStatus('Error while stopping: ' + (e?.message || String(e)), 'error');
+      }
+    }
+
+    function resetForm() {
+      urlInput.value = DEFAULT_URL;
+      // keep 30 fps selected by default (already marked selected in HTML)
+      autoSel.value = 'on';
+      unloadStream();
+    }
+
+    btnLoad.addEventListener('click', () => {
+      loadStream((urlInput.value || '').trim());
+    });
+    btnUnload.addEventListener('click', unloadStream);
+    btnReset.addEventListener('click', resetForm);
+    urlInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        btnLoad.click();
+      }
+    });
+
+    urlInput.value = DEFAULT_URL;
+    setStatus('Idle. Paste a URL and press Load.', null);
+  </script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+python3 ~/src/gopha/gopha-gen/gopha-gen.py --seed 42 --width 1920 --height 1080 --fps 50 --duration 30  --balls 13 --plasma-bands 14 --plasma-smooth 4 --tickwheel-mix --tickwheel --anchor-period 1  --outfile creamy_detail_3X-50p-444p-1920x1080.yuv --output-format yuv444p

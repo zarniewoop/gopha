@@ -1,0 +1,27 @@
+{
+  "size": "1920x1080",
+  "rate": 60,
+
+  "reference_pixel_format": "yuv444p",
+  "analysis_pixel_format": "yuv420p",
+
+  "cycle_length": 60,
+
+  "metrics": {
+    "vmaf": true,
+    "ssim": true,
+    "psnr": true,
+    "temporal_ssim": true,
+    "frame_mse": true,
+    "cycle_analysis": true
+  },
+
+  "error_video": {
+    "difference": true,
+    "amplified_difference": true,
+    "heatmap": true
+  },
+
+  "output_directory": "results",
+  "vmaf_model_path": null
+}

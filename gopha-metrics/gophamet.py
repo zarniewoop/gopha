@@ -394,7 +394,7 @@ def main():
         summary["mean_temporal_ssim_conv"] = round(
             mean([x["ssim"] for x in temp_data]), 5)
 
-    ########################################################
+########################################################
     # Error Videos
     ########################################################
 
@@ -405,6 +405,9 @@ def main():
             [ref][conv]blend=all_mode=difference{extra}
             """
 
+    # -----------------------------------------------------
+    # 1️⃣ Raw Difference (Pure Grayscale)
+    # -----------------------------------------------------
     if config["error_video"]["difference"]:
         cmd = [
             "ffmpeg", "-y",
@@ -412,12 +415,16 @@ def main():
             "-fflags", "+genpts",
             "-vsync", "0",
             "-i", args.converted,
-            "-filter_complex", build_error_filter(",format=gray"),
+            "-filter_complex",
+            build_error_filter(",format=gray"),
             "-c:v", "libx264", "-crf", "0",
             os.path.join(out_dir, "error_difference.mp4")
         ]
         run_cmd(cmd)
 
+    # -----------------------------------------------------
+    # 2️⃣ Amplified Grayscale (Fixed Scale)
+    # -----------------------------------------------------
     if config["error_video"]["amplified_difference"]:
         cmd = [
             "ffmpeg", "-y",
@@ -425,12 +432,16 @@ def main():
             "-fflags", "+genpts",
             "-vsync", "0",
             "-i", args.converted,
-            "-filter_complex", build_error_filter(",eq=contrast=5:brightness=0.1"),
+            "-filter_complex",
+            build_error_filter(",format=gray,lut=y='clip(val*8,0,255)'"),
             "-c:v", "libx264", "-crf", "0",
             os.path.join(out_dir, "error_amplified.mp4")
         ]
         run_cmd(cmd)
 
+    # -----------------------------------------------------
+    # 3️⃣ Fixed-Scale Heatmap (No pseudocolor)
+    # -----------------------------------------------------
     if config["error_video"]["heatmap"]:
         cmd = [
             "ffmpeg", "-y",
@@ -439,7 +450,15 @@ def main():
             "-vsync", "0",
             "-i", args.converted,
             "-filter_complex",
-            build_error_filter(",format=gray,normalize,pseudocolor=jet"),
+            build_error_filter(
+                ",format=gray,"
+                "lut=y='clip(val*8,0,255)',"
+                "format=rgb24,"
+                "lutrgb="
+                "r='if(lt(val,128),0,2*(val-128))':"
+                "g='if(lt(val,128),2*val,2*(255-val))':"
+                "b='if(lt(val,128),2*(128-val),0)'"
+            ),
             "-c:v", "libx264", "-crf", "0",
             os.path.join(out_dir, "error_heatmap.mp4")
         ]

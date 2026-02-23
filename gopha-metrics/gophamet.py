@@ -90,7 +90,7 @@ def parse_vmaf_json(path):
 
 def compute_temporal_ssim(video, out_log, analysis_fmt, size, rate):
     filtergraph = f"""
-    format={analysis_fmt},scale={size},fps={rate},
+    format={analysis_fmt},scale={size},setpts=N/{rate}/TB,
     split[a][b];
     [b]trim=start_frame=1,setpts=PTS-STARTPTS[b1];
     [a][b1]ssim=stats_file={out_log}
@@ -253,8 +253,8 @@ def main():
 
     size = config["size"]
     rate = config["rate"]
-    ref_pix_fmt = config["reference_pixel_format"]
-    analysis_fmt = config["analysis_pixel_format"]
+    ref_pix_fmt = config["reference"]["pixel_format"]
+    analysis_fmt = config["metric_processing"]["pixel_format"]
     cycle_length = config["cycle_length"]
     out_dir = config["output_directory"]
 
@@ -269,9 +269,11 @@ def main():
 
     def build_filter(metric_filter):
         return f"""
-        [0:v]format={analysis_fmt},scale={size},fps={rate}[ref];
-        [1:v]format={analysis_fmt},scale={size},fps={rate}[conv];
-        [ref][conv]{metric_filter}
+        [0:v]format={analysis_fmt},scale={size}[ref];
+        [1:v]format={analysis_fmt},scale={size}[conv];
+        [ref]select=gte(n\\,0),setpts=N/{rate}/TB[ref2];
+        [conv]select=gte(n\\,0),setpts=N/{rate}/TB[conv2];
+        [ref2][conv2]{metric_filter}
         """
 
     ########################################################
@@ -289,8 +291,10 @@ def main():
             "ffmpeg", "-y",
             "-s", size,
             "-pix_fmt", ref_pix_fmt,
-            "-r", str(rate),
+            "-framerate", str(rate),
             "-i", args.reference,
+            "-fflags", "+genpts",
+            "-vsync", "0",
             "-i", args.converted,
             "-filter_complex", filtergraph,
             "-f", "null", "-"
@@ -317,8 +321,10 @@ def main():
             "ffmpeg", "-y",
             "-s", size,
             "-pix_fmt", ref_pix_fmt,
-            "-r", str(rate),
+            "-framerate", str(rate),
             "-i", args.reference,
+            "-fflags", "+genpts",
+            "-vsync", "0",
             "-i", args.converted,
             "-filter_complex", filtergraph,
             "-f", "null", "-"
@@ -345,8 +351,10 @@ def main():
             "ffmpeg", "-y",
             "-s", size,
             "-pix_fmt", ref_pix_fmt,
-            "-r", str(rate),
+            "-framerate", str(rate),
             "-i", args.reference,
+            "-fflags", "+genpts",
+            "-vsync", "0",
             "-i", args.converted,
             "-filter_complex", filtergraph,
             "-f", "null", "-"
@@ -392,17 +400,19 @@ def main():
 
     def build_error_filter(extra):
         return f"""
-        [0:v]format={analysis_fmt},scale={size},fps={rate}[ref];
-        [1:v]format={analysis_fmt},scale={size},fps={rate}[conv];
-        [ref][conv]blend=all_mode=difference{extra}
-        """
+            [0:v]format={analysis_fmt},scale={size},setpts=N/{rate}/TB[ref];
+            [1:v]format={analysis_fmt},scale={size},setpts=N/{rate}/TB[conv];
+            [ref][conv]blend=all_mode=difference{extra}
+            """
 
     if config["error_video"]["difference"]:
         cmd = [
             "ffmpeg", "-y",
-            "-s", size, "-pix_fmt", ref_pix_fmt, "-r", str(rate), "-i", args.reference,
+            "-s", size, "-pix_fmt", ref_pix_fmt, "-framerate", str(rate), "-i", args.reference,
+            "-fflags", "+genpts",
+            "-vsync", "0",
             "-i", args.converted,
-            "-filter_complex", build_error_filter(""),
+            "-filter_complex", build_error_filter(",format=gray"),
             "-c:v", "libx264", "-crf", "0",
             os.path.join(out_dir, "error_difference.mp4")
         ]
@@ -411,7 +421,9 @@ def main():
     if config["error_video"]["amplified_difference"]:
         cmd = [
             "ffmpeg", "-y",
-            "-s", size, "-pix_fmt", ref_pix_fmt, "-r", str(rate), "-i", args.reference,
+            "-s", size, "-pix_fmt", ref_pix_fmt, "-framerate", str(rate), "-i", args.reference,
+            "-fflags", "+genpts",
+            "-vsync", "0",
             "-i", args.converted,
             "-filter_complex", build_error_filter(",eq=contrast=5:brightness=0.1"),
             "-c:v", "libx264", "-crf", "0",
@@ -422,10 +434,12 @@ def main():
     if config["error_video"]["heatmap"]:
         cmd = [
             "ffmpeg", "-y",
-            "-s", size, "-pix_fmt", ref_pix_fmt, "-r", str(rate), "-i", args.reference,
+            "-s", size, "-pix_fmt", ref_pix_fmt, "-framerate", str(rate), "-i", args.reference,
+            "-fflags", "+genpts",
+            "-vsync", "0",
             "-i", args.converted,
             "-filter_complex",
-            build_error_filter(",format=gray,pseudocolor=preset=jet"),
+            build_error_filter(",format=gray,normalize,pseudocolor=jet"),
             "-c:v", "libx264", "-crf", "0",
             os.path.join(out_dir, "error_heatmap.mp4")
         ]

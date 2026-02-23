@@ -2,8 +2,14 @@
   "size": "1920x1080",
   "rate": 60,
 
-  "reference_pixel_format": "yuv444p",
-  "analysis_pixel_format": "yuv420p",
+"reference": {
+  "pixel_format": "yuv444p"
+},
+
+"metric_processing": {
+  "pixel_format": "yuv420p",
+  "normalize_range": "tv"
+},
 
   "cycle_length": 60,
 

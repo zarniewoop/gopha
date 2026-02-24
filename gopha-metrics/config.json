@@ -2,14 +2,29 @@
   "size": "1920x1080",
   "rate": 60,
 
-"reference": {
-  "pixel_format": "yuv444p"
-},
+  "reference": { "pixel_format": "yuv444p" },
+  "converted":  { "pixel_format": "yuv420p" },
 
-"metric_processing": {
-  "pixel_format": "yuv420p",
-  "normalize_range": "tv"
-},
+  "metric_processing": {
+    "pixel_format": "yuv444p",
+    "normalize_range": "tv"
+  },
+
+  "color": {
+    "use_zscale": true,
+    "range": "tv",
+    "matrix": "bt709",
+    "primaries": "bt709",
+    "transfer": "bt709"
+  },
+
+  "rewrap": {
+    "enabled": true,
+    "codec": "ffv1",
+    "ffv1_level": 3,
+    "g": 1,
+    "slicecrc": 1
+  },
 
   "cycle_length": 60,
 
@@ -27,7 +42,7 @@
     "amplified_difference": true,
     "heatmap": true
   },
-
+  
   "output_directory": "results",
   "vmaf_model_path": null
 }

@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """
-Animated plasma background with neon balls — raw video generator for encoder testing.
+Animated plasma background with neon balls — raw video generator for encoder testing,
+one primary use is generating sequences to test temporal consistency and FPS conversion behavior.
+for exmaple generating a sequence at 60 fps and verifying that it matches the 50 fps version at whole-second anchors and that frame interpolation
+by AI algorithms from  X to Y fps can be compared against the ground truth of the same sequence rendered at Y fps.
+
 
 Key features
 - Palettes: --palette default|highcontrast

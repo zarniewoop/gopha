@@ -328,7 +328,12 @@ def main():
 
     analysis_fmt = config["metric_processing"]["pixel_format"]
     cycle_length = int(config["cycle_length"])
-    out_dir = config["output_directory"]
+    
+    # Build per-file output directory: <output_root>/<converted_stem>-analysis/
+    output_root = config["output_directory"]
+    conv_stem = Path(args.converted).stem
+    out_dir = os.path.join(output_root, f"{conv_stem}-analysis")
+
 
     # Color normalization config
     color_cfg = config.get("color", {})

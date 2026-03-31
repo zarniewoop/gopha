@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Super SlowMo AI — 50 fps → 250 fps</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',system-ui,sans-serif;background:#F0F2F5;padding:20px;display:flex;flex-direction:column;align-items:center;gap:24px}
+.card{background:#fff;border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,.06),0 6px 16px rgba(0,0,0,.04);padding:24px 28px 18px;max-width:1060px;width:100%}
+.card h2{font-size:16px;font-weight:700;color:#111827;letter-spacing:-.02em;margin-bottom:3px}
+.card .sub{font-size:12.5px;color:#6B7280;margin-bottom:12px;line-height:1.55}
+svg{width:100%;height:auto;display:block}
+.cap{font-size:11px;color:#9CA3AF;text-align:center;margin-top:10px;line-height:1.55;font-style:italic}
+@media(max-width:600px){body{padding:10px;gap:16px}.card{padding:14px 12px 12px}.card h2{font-size:14px}}
+</style>
+</head>
+<body>
+
+<div class="card">
+<h2>Super SlowMo AI Overview — 50 fps → 250 fps (5× Interpolation)</h2>
+<p class="sub">Each 20 ms source interval produces 5 output frames at 4 ms spacing: 1 original + 4 AI motion-compensated interpolations. Over 100 ms, 5 source frames expand to 25 output frames. The highlighted green group (A → B) is detailed below.</p>
+<svg id="d3" viewBox="0 0 1060 238"></svg>
+<p class="cap">Figure 1 — Overview of 100 ms window. Each group of 5 output frames maps to one source interval.</p>
+</div>
+
+<div class="card">
+<h2>Detail — Single Interval AI Interpolation (A → B, 0 – 20 ms)</h2>
+<p class="sub">Between source frames A (0 ms) and B (20 ms), the AI model synthesises 4 intermediate frames at 4 ms steps using motion-compensated interpolation. Blue lines show contribution from A; amber lines from B. Line thickness indicates blend weight.</p>
+<svg id="d4" viewBox="0 0 880 310"></svg>
+<p class="cap">Figure 2 — Blend-weight fan. Each output uniquely combines both neighbours at the correct temporal ratio, producing smooth 5× slow motion.</p>
+</div>
+
+<script>
+(function(){
+var NS='http://www.w3.org/2000/svg';
+var FF='Inter,system-ui,sans-serif';
+function el(t,a,p){var e=document.createElementNS(NS,t);for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}
+function tx(s,x,y,a,p){var t=el('text',Object.assign({x:x,y:y},a),p);t.textContent=s;return t}
+
+/* ================================================================
+   DIAGRAM 1 — Overview: 100 ms, 5 source → 25 output
+   ================================================================ */
+(function(){
+  var svg=document.getElementById('d3');
+  var TL=78,TR=1030,TW=TR-TL,maxT=100;
+  function xt(t){return TL+(t/maxT)*TW}
+
+  var SY=45,SFW=34,SFH=28,SFR=5;
+  var OY=140,OFW=24,OFH=20,OFR=3;
+
+  var srcLabels='ABCDEF'.split('');
+  var srcTimes=[0,20,40,60,80,100];
+  var srcX=srcTimes.map(xt);
+
+  var outCount=25,outTimes=[],outX=[];
+  for(var i=0;i<outCount;i++){outTimes.push(i*4)}
+  outX=outTimes.map(xt);
+
+  function getMap(i){
+    var t=i*4,intv=Math.floor(t/20),frac=(t%20)/20;
+    if(frac===0)return{type:'orig',src:intv};
+    return{type:'ai',a:intv,b:intv+1,frac:frac};
+  }
+
+  var sm={'font-size':'8.5',fill:'#9CA3AF','text-anchor':'middle','font-family':FF};
+
+  /* Row labels */
+  tx('50 fps',10,SY+SFH/2-3,{'font-size':'10','font-weight':'700',fill:'#3B82F6','dominant-baseline':'middle','font-family':FF},svg);
+  tx('Source',10,SY+SFH/2+8,{'font-size':'7',fill:'#93C5FD','dominant-baseline':'middle','font-family':FF},svg);
+  tx('250 fps',2,OY+OFH/2-3,{'font-size':'10','font-weight':'700',fill:'#059669','dominant-baseline':'middle','font-family':FF},svg);
+  tx('Output',2,OY+OFH/2+8,{'font-size':'7',fill:'#6EE7B7','dominant-baseline':'middle','font-family':FF},svg);
+
+  /* Time axis */
+  el('line',{x1:TL-6,y1:SY+SFH+7,x2:TR+10,y2:SY+SFH+7,stroke:'#F1F5F9','stroke-width':1},svg);
+  el('polygon',{points:(TR+10)+','+(SY+SFH+7)+' '+(TR+5)+','+(SY+SFH+4)+' '+(TR+5)+','+(SY+SFH+10),fill:'#E2E8F0'},svg);
+  tx('t',TR+16,SY+SFH+7,{'font-size':'8',fill:'#CBD5E1','dominant-baseline':'central','font-style':'italic','font-family':FF},svg);
+  srcX.forEach(function(x){el('line',{x1:x,y1:SY+SFH+4,x2:x,y2:SY+SFH+10,stroke:'#E2E8F0','stroke-width':1},svg)});
+
+  /* Source frames */
+  srcX.forEach(function(x,i){
+    var faded=i===5;
+    el('rect',{x:x-SFW/2,y:SY,width:SFW,height:SFH,rx:SFR,fill:'#3B82F6',opacity:faded?0.22:1},svg);
+    tx(srcLabels[i],x,SY+SFH/2,{'font-size':'12','font-weight':'700',fill:'#fff','text-anchor':'middle','dominant-baseline':'central','font-family':FF,opacity:faded?0.3:1},svg);
+    tx(srcTimes[i]+' ms',x,SY+SFH+20,Object.assign({},sm,{opacity:faded?0.3:1}),svg);
+  });
+
+  /* Group backgrounds */
+  for(var g=0;g<5;g++){
+    var gx1=outX[g*5]-OFW/2-3,gx2=outX[g*5+4]+OFW/2+3;
+    var isHL=g===0;
+    el('rect',{x:gx1,y:OY-5,width:gx2-gx1,height:OFH+10,rx:4,fill:isHL?'#F0FDF4':(g%2===0?'#FAFAFA':'#F5F5F5'),stroke:isHL?'#BBF7D0':'none','stroke-width':isHL?1:0},svg);
+  }
+
+  /* Connecting lines */
+  for(var i=0;i<outCount;i++){
+    var m=getMap(i),g=Math.floor(i/5),isHL=g===0;
+    if(m.type==='orig'){
+      el('line',{x1:srcX[m.src],y1:SY+SFH,x2:outX[i],y2:OY,stroke:isHL?'#93C5FD':'#E5E7EB','stroke-width':isHL?1.3:0.6,opacity:isHL?0.65:0.22},svg);
+    }else{
+      el('line',{x1:srcX[m.a],y1:SY+SFH,x2:outX[i],y2:OY,stroke:isHL?'#86EFAC':'#E5E7EB','stroke-width':isHL?0.9:0.4,opacity:isHL?0.45:0.1},svg);
+      el('line',{x1:srcX[m.b],y1:SY+SFH,x2:outX[i],y2:OY,stroke:isHL?'#86EFAC':'#E5E7EB','stroke-width':isHL?0.9:0.4,opacity:isHL?0.45:0.1},svg);
+    }
+  }
+
+  /* Output frames */
+  outX.forEach(function(x,i){
+    var m=getMap(i);
+    if(m.type==='orig'){
+      el('rect',{x:x-OFW/2,y:OY,width:OFW,height:OFH,rx:OFR,fill:'#EFF6FF',stroke:'#93C5FD','stroke-width':1.2},svg);
+      tx(srcLabels[m.src],x,OY+OFH/2,{'font-size':'9','font-weight':'700',fill:'#3B82F6','text-anchor':'middle','dominant-baseline':'central','font-family':FF},svg);
+    }else{
+      el('rect',{x:x-OFW/2,y:OY,width:OFW,height:OFH,rx:OFR,fill:'#ECFDF5',stroke:'#34D399','stroke-width':0.7},svg);
+      el('circle',{cx:x,cy:OY+OFH/2,r:1.8,fill:'#34D399'},svg);
+    }
+  });
+
+  /* Group brackets + labels */
+  for(var g=0;g<5;g++){
+    var gc=(outX[g*5]+outX[g*5+4])/2;
+    var bx1=outX[g*5]-OFW/2+1,bx2=outX[g*5+4]+OFW/2-1;
+    var by=OY+OFH+4;
+    el('path',{d:'M'+bx1+','+by+' L'+bx1+','+(by+3)+' L'+bx2+','+(by+3)+' L'+bx2+','+by,fill:'none',stroke:'#D1D5DB','stroke-width':0.6},svg);
+    tx('1 + 4 AI',gc,by+13,{'font-size':'6.5',fill:'#9CA3AF','text-anchor':'middle','font-family':FF},svg);
+  }
+
+  /* Summary */
+  tx('\u2713  5 source frames \u2192 25 output (5\u00D7)  \u2014  5 originals + 20 AI-interpolated  \u2014  each displayed for 4.0 ms',
+    TL+TW/2,OY+OFH+36,{'font-size':'10','font-weight':'500',fill:'#059669','text-anchor':'middle','font-family':FF},svg);
+
+  /* Legend */
+  var ly=OY+OFH+50,lx=TL+TW/2-110;
+  el('rect',{x:lx,y:ly-5,width:10,height:10,rx:2,fill:'#EFF6FF',stroke:'#93C5FD','stroke-width':1},svg);
+  tx('Original',lx+14,ly+2,{'font-size':'8',fill:'#6B7280','dominant-baseline':'middle','font-family':FF},svg);
+  el('rect',{x:lx+62,y:ly-5,width:10,height:10,rx:2,fill:'#ECFDF5',stroke:'#34D399','stroke-width':1},svg);
+  tx('AI Interpolated',lx+76,ly+2,{'font-size':'8',fill:'#6B7280','dominant-baseline':'middle','font-family':FF},svg);
+  el('rect',{x:lx+166,y:ly-5,width:10,height:10,rx:2,fill:'#3B82F6',opacity:0.22},svg);
+  tx('Next cycle',lx+180,ly+2,{'font-size':'8',fill:'#6B7280','dominant-baseline':'middle','font-family':FF},svg);
+
+})();
+
+/* ================================================================
+   DIAGRAM 2 — Zoom Detail: A→B interval, 0–20 ms
+   ================================================================ */
+(function(){
+  var svg=document.getElementById('d4');
+  var defs=el('defs',{},svg);
+
+  var ZTL=130,ZTR=800,ZTW=ZTR-ZTL;
+  function zxt(t){return ZTL+(t/20)*ZTW}
+
+  var ZSY=48,ZSFW=52,ZSFH=40,ZSFR=6;
+  var ZOY=180,ZOFW=50,ZOFH=36,ZOFR=5;
+
+  var zA=zxt(0),zB=zxt(20);
+
+  /* Row labels */
+  tx('50 fps',15,ZSY+ZSFH/2-4,{'font-size':'11','font-weight':'700',fill:'#3B82F6','dominant-baseline':'middle','font-family':FF},svg);
+  tx('Source',15,ZSY+ZSFH/2+9,{'font-size':'8',fill:'#93C5FD','dominant-baseline':'middle','font-family':FF},svg);
+  tx('250 fps',8,ZOY+ZOFH/2-4,{'font-size':'11','font-weight':'700',fill:'#059669','dominant-baseline':'middle','font-family':FF},svg);
+  tx('Output',8,ZOY+ZOFH/2+9,{'font-size':'8',fill:'#6EE7B7','dominant-baseline':'middle','font-family':FF},svg);
+
+  /* Time axes */
+  el('line',{x1:ZTL-8,y1:ZSY+ZSFH+10,x2:ZTR+12,y2:ZSY+ZSFH+10,stroke:'#F1F5F9','stroke-width':1},svg);
+  el('polygon',{points:(ZTR+12)+','+(ZSY+ZSFH+10)+' '+(ZTR+7)+','+(ZSY+ZSFH+7)+' '+(ZTR+7)+','+(ZSY+ZSFH+13),fill:'#E2E8F0'},svg);
+  tx('t',ZTR+18,ZSY+ZSFH+10,{'font-size':'9',fill:'#CBD5E1','dominant-baseline':'central','font-style':'italic','font-family':FF},svg);
+  el('line',{x1:ZTL-8,y1:ZOY+ZOFH+10,x2:ZTR+12,y2:ZOY+ZOFH+10,stroke:'#F1F5F9','stroke-width':1},svg);
+  el('polygon',{points:(ZTR+12)+','+(ZOY+ZOFH+10)+' '+(ZTR+7)+','+(ZOY+ZOFH+7)+' '+(ZTR+7)+','+(ZOY+ZOFH+13),fill:'#E2E8F0'},svg);
+  tx('t',ZTR+18,ZOY+ZOFH+10,{'font-size':'9',fill:'#CBD5E1','dominant-baseline':'central','font-style':'italic','font-family':FF},svg);
+
+  /* Axis ticks — source */
+  [zA,zB].forEach(function(x){el('line',{x1:x,y1:ZSY+ZSFH+7,x2:x,y2:ZSY+ZSFH+13,stroke:'#E2E8F0','stroke-width':1},svg)});
+
+  /* Source frames */
+  [[zA,'A','0 ms'],[zB,'B','20 ms']].forEach(function(d){
+    el('rect',{x:d[0]-ZSFW/2,y:ZSY,width:ZSFW,height:ZSFH,rx:ZSFR,fill:'#3B82F6'},svg);
+    tx(d[1],d[0],ZSY+ZSFH/2,{'font-size':'18','font-weight':'700',fill:'#fff','text-anchor':'middle','dominant-baseline':'central','font-family':FF},svg);
+    tx(d[2],d[0],ZSY+ZSFH+24,{'font-size':'10',fill:'#9CA3AF','text-anchor':'middle','font-family':FF},svg);
+  });
+
+  /* 20 ms interval bracket */
+  var brY=ZSY+ZSFH+34;
+  el('line',{x1:zA,y1:brY,x2:zB,y2:brY,stroke:'#CBD5E1','stroke-width':0.8},svg);
+  el('line',{x1:zA,y1:brY-3,x2:zA,y2:brY+3,stroke:'#CBD5E1','stroke-width':0.8},svg);
+  el('line',{x1:zB,y1:brY-3,x2:zB,y2:brY+3,stroke:'#CBD5E1','stroke-width':0.8},svg);
+  tx('20 ms interval',(zA+zB)/2,brY-6,{'font-size':'8',fill:'#CBD5E1','text-anchor':'middle','font-family':FF},svg);
+
+  /* 5 output frames */
+  var zTimes=[0,4,8,12,16];
+  var zX=zTimes.map(zxt);
+  var zFrac=[0,0.2,0.4,0.6,0.8];
+
+  /* Axis ticks — output */
+  zX.forEach(function(x){el('line',{x1:x,y1:ZOY+ZOFH+7,x2:x,y2:ZOY+ZOFH+13,stroke:'#E2E8F0','stroke-width':1},svg)});
+
+  /* Connecting lines — fan pattern */
+  zX.forEach(function(ox,i){
+    var wA=1-zFrac[i],wB=zFrac[i];
+    if(wA>0.01){
+      el('line',{x1:zA,y1:ZSY+ZSFH+1,x2:ox,y2:ZOY-1,stroke:'#60A5FA','stroke-width':String(0.6+wA*2.8),opacity:String(0.15+wA*0.55)},svg);
+    }
+    if(wB>0.01){
+      el('line',{x1:zB,y1:ZSY+ZSFH+1,x2:ox,y2:ZOY-1,stroke:'#FBBF24','stroke-width':String(0.6+wB*2.8),opacity:String(0.15+wB*0.55)},svg);
+    }
+  });
+
+  /* Output frames */
+  zX.forEach(function(ox,i){
+    var frac=zFrac[i],isOrig=frac===0;
+    if(isOrig){
+      el('rect',{x:ox-ZOFW/2,y:ZOY,width:ZOFW,height:ZOFH,rx:ZOFR,fill:'#EFF6FF',stroke:'#93C5FD','stroke-width':1.5},svg);
+      tx('A',ox,ZOY+ZOFH/2,{'font-size':'16','font-weight':'700',fill:'#3B82F6','text-anchor':'middle','dominant-baseline':'central','font-family':FF},svg);
+    }else{
+      el('rect',{x:ox-ZOFW/2,y:ZOY,width:ZOFW,height:ZOFH,rx:ZOFR,fill:'#ECFDF5',stroke:'#34D399','stroke-width':1.5},svg);
+      tx('A\u00B7B',ox,ZOY+ZOFH/2,{'font-size':'12','font-weight':'700',fill:'#059669','text-anchor':'middle','dominant-baseline':'central','font-family':FF},svg);
+      el('rect',{x:ox-12,y:ZOY-15,width:24,height:13,rx:6.5,fill:'#10B981'},svg);
+      tx('AI',ox,ZOY-8.5,{'font-size':'7','font-weight':'700',fill:'#fff','text-anchor':'middle','dominant-baseline':'central','font-family':FF,'letter-spacing':'0.5'},svg);
+    }
+
+    /* Time label */
+    tx(zTimes[i]+' ms',ox,ZOY+ZOFH+24,{'font-size':'10',fill:'#9CA3AF','text-anchor':'middle','font-family':FF},svg);
+
+    /* Blend bar */
+    var wA=1-frac,wB=frac;
+    var barW=42,barH=5,barX=ox-barW/2,barY=ZOY+ZOFH+32;
+    var clipId='cb'+i;
+    var cp=el('clipPath',{id:clipId},defs);
+    el('rect',{x:barX,y:barY,width:barW,height:barH,rx:2.5},cp);
+    var grp=el('g',{'clip-path':'url(#'+clipId+')'},svg);
+    el('rect',{x:barX,y:barY,width:Math.max(barW*wA,0.5),height:barH,fill:'#3B82F6',opacity:0.65},grp);
+    if(wB>0)el('rect',{x:barX+barW*wA,y:barY,width:Math.max(barW*wB,0.5),height:barH,fill:'#FBBF24',opacity:0.65},grp);
+
+    /* Blend text */
+    var btxt=wA===1?'100% A':Math.round(wA*100)+'% A \u00B7 '+Math.round(wB*100)+'% B';
+    tx(btxt,ox,barY+barH+12,{'font-size':'7.5',fill:'#6B7280','text-anchor':'middle','font-family':FF},svg);
+  });
+
+  /* Next frame indicator (B at t=20) shown faded */
+  var bOutX=zxt(20);
+  el('rect',{x:bOutX-ZOFW/2,y:ZOY,width:ZOFW,height:ZOFH,rx:ZOFR,fill:'#EFF6FF',stroke:'#93C5FD','stroke-width':1,opacity:0.3},svg);
+  tx('B',bOutX,ZOY+ZOFH/2,{'font-size':'16','font-weight':'700',fill:'#3B82F6','text-anchor':'middle','dominant-baseline':'central','font-family':FF,opacity:0.3},svg);
+  tx('20 ms',bOutX,ZOY+ZOFH+24,{'font-size':'10',fill:'#9CA3AF','text-anchor':'middle','font-family':FF,opacity:0.3},svg);
+  tx('\u2190 next interval',bOutX+40,ZOY+ZOFH/2,{'font-size':'7.5',fill:'#CBD5E1','dominant-baseline':'central','font-family':FF},svg);
+
+  /* Summary annotation */
+  tx('\u2713  Each output occupies exactly 4.0 ms \u2014 smooth, judder-free 5\u00D7 slow-motion playback',
+    (ZTL+ZTR)/2,ZOY+ZOFH+64,{'font-size':'10.5','font-weight':'500',fill:'#059669','text-anchor':'middle','font-family':FF},svg);
+
+  /* Color legend */
+  var legY=ZOY+ZOFH+80,legX=(ZTL+ZTR)/2-100;
+  el('line',{x1:legX,y1:legY,x2:legX+20,y2:legY,stroke:'#60A5FA','stroke-width':2.5},svg);
+  tx('Weight from A',legX+25,legY,{'font-size':'8',fill:'#6B7280','dominant-baseline':'central','font-family':FF},svg);
+  el('line',{x1:legX+110,y1:legY,x2:legX+130,y2:legY,stroke:'#FBBF24','stroke-width':2.5},svg);
+  tx('Weight from B',legX+135,legY,{'font-size':'8',fill:'#6B7280','dominant-baseline':'central','font-family':FF},svg);
+
+})();
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frame Rate Conversion Models</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',system-ui,sans-serif;background:#F0F2F5;padding:24px;display:flex;flex-direction:column;align-items:center;gap:24px}
+.card{background:#fff;border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,.06),0 6px 16px rgba(0,0,0,.04);padding:28px 32px 22px;max-width:1100px;width:100%}
+.card h2{font-size:16px;font-weight:700;color:#111827;letter-spacing:-.02em;margin-bottom:4px}
+.card .sub{font-size:12.5px;color:#6B7280;margin-bottom:16px;line-height:1.6}
+svg{width:100%;height:auto;display:block}
+.vs{text-align:center;font-size:13px;font-weight:700;color:#9CA3AF;letter-spacing:2px;padding:4px 0}
+</style>
+</head>
+<body>
+
+<div class="card">
+<h2>1. Algorithmic Frame Rate Conversion</h2>
+<p class="sub">Traditional field-based interpolation — each field is processed independently through separate interpolation paths with no colour-space conversion or chroma reconstruction required.</p>
+<svg id="d1" viewBox="0 0 980 420"></svg>
+</div>
+
+<div class="vs">VS</div>
+
+<div class="card">
+<h2>2. AI Frame Rate Conversion Model</h2>
+<p class="sub">Full-frame AI processing — the source is fully decoded, deinterlaced and converted to RGB before a single AI model interpolates complete frames at the target rate.</p>
+<svg id="d2" viewBox="0 0 980 325"></svg>
+</div>
+
+<script>
+(function(){
+var NS='http://www.w3.org/2000/svg',FF="'Inter',system-ui,sans-serif";
+function ce(t,a,p){var e=document.createElementNS(NS,t);if(a)for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}
+function tx(s,x,y,a,p){var o={x:x,y:y,'font-family':FF};for(var k in a)o[k]=a[k];var t=ce('text',o,p);t.textContent=s;return t}
+
+function octPts(cx,cy,w,h){
+  var c=Math.min(w,h)*.28,l=cx-w/2,r=cx+w/2,t=cy-h/2,b=cy+h/2;
+  return(l+c)+','+t+' '+(r-c)+','+t+' '+r+','+(t+c)+' '+r+','+(b-c)+' '+(r-c)+','+b+' '+(l+c)+','+b+' '+l+','+(b-c)+' '+l+','+(t+c);
+}
+
+function drawChip(cx,cy,sz,color,g,label){
+  ce('rect',{x:cx-sz/2,y:cy-sz/2,width:sz,height:sz,rx:5,fill:color},g);
+  var is=sz*.42;
+  ce('rect',{x:cx-is/2,y:cy-is/2,width:is,height:is,rx:2,fill:'none',stroke:'rgba(255,255,255,0.25)','stroke-width':'1.2'},g);
+  var pw=2.5,pl=7;
+  [-sz*.28,0,sz*.28].forEach(function(p){
+    ce('rect',{x:cx+p-pw/2,y:cy-sz/2-pl,width:pw,height:pl,rx:.8,fill:color},g);
+    ce('rect',{x:cx+p-pw/2,y:cy+sz/2,width:pw,height:pl,rx:.8,fill:color},g);
+    ce('rect',{x:cx-sz/2-pl,y:cy+p-pw/2,width:pl,height:pw,rx:.8,fill:color},g);
+    ce('rect',{x:cx+sz/2,y:cy+p-pw/2,width:pl,height:pw,rx:.8,fill:color},g);
+  });
+  if(label)tx(label,cx,cy+1,{'font-size':String(sz*.24),'font-weight':'700',fill:'rgba(255,255,255,0.9)','text-anchor':'middle','dominant-baseline':'central'},g);
+}
+
+function roundArr(pts,g,pf,r){
+  r=r||14;var d='M'+pts[0][0]+','+pts[0][1];
+  for(var i=1;i<pts.length-1;i++){
+    var p=pts[i-1],c=pts[i],n=pts[i+1];
+    var d1x=c[0]-p[0],d1y=c[1]-p[1],l1=Math.sqrt(d1x*d1x+d1y*d1y);
+    var d2x=n[0]-c[0],d2y=n[1]-c[1],l2=Math.sqrt(d2x*d2x+d2y*d2y);
+    var rr=Math.min(r,l1/2,l2/2);
+    d+=' L'+(c[0]-d1x/l1*rr)+','+(c[1]-d1y/l1*rr);
+    d+=' Q'+c[0]+','+c[1]+' '+(c[0]+d2x/l2*rr)+','+(c[1]+d2y/l2*rr);
+  }
+  d+=' L'+pts[pts.length-1][0]+','+pts[pts.length-1][1];
+  ce('path',{d:d,fill:'none',stroke:'#94A3B8','stroke-width':'1.6','marker-end':'url(#'+pf+'aw)'},g);
+}
+
+function addDefs(svg,pf){
+  var d=ce('defs',null,svg);
+  var mk=ce('marker',{id:pf+'aw',markerWidth:'8',markerHeight:'6',refX:'7.5',refY:'3',orient:'auto',markerUnits:'userSpaceOnUse'},d);
+  ce('polygon',{points:'0,0.5 7.5,3 0,5.5',fill:'#94A3B8'},mk);
+  var f=ce('filter',{id:pf+'fs',x:'-8%',y:'-12%',width:'116%',height:'132%'},d);
+  ce('feGaussianBlur',{'in':'SourceAlpha',stdDeviation:'3',result:'b'},f);
+  ce('feOffset',{dx:'0',dy:'2','in':'b',result:'o'},f);
+  ce('feFlood',{'flood-color':'#000','flood-opacity':'.07',result:'c'},f);
+  ce('feComposite',{'in':'c',in2:'o',operator:'in',result:'s'},f);
+  var m=ce('feMerge',null,f);ce('feMergeNode',{'in':'s'},m);ce('feMergeNode',{'in':'SourceGraphic'},m);
+  var f2=ce('filter',{id:pf+'fp',x:'-10%',y:'-16%',width:'120%',height:'140%'},d);
+  ce('feGaussianBlur',{'in':'SourceAlpha',stdDeviation:'5',result:'b'},f2);
+  ce('feOffset',{dx:'0',dy:'2','in':'b',result:'o'},f2);
+  ce('feFlood',{'flood-color':'#7C3AED','flood-opacity':'.18',result:'c'},f2);
+  ce('feComposite',{'in':'c',in2:'o',operator:'in',result:'s'},f2);
+  var m2=ce('feMerge',null,f2);ce('feMergeNode',{'in':'s'},m2);ce('feMergeNode',{'in':'SourceGraphic'},m2);
+  var f3=ce('filter',{id:pf+'fb',x:'-14%',y:'-18%',width:'128%',height:'144%'},d);
+  ce('feGaussianBlur',{'in':'SourceAlpha',stdDeviation:'7',result:'b'},f3);
+  ce('feOffset',{dx:'0',dy:'3','in':'b',result:'o'},f3);
+  ce('feFlood',{'flood-color':'#1E3A8A','flood-opacity':'.28',result:'c'},f3);
+  ce('feComposite',{'in':'c',in2:'o',operator:'in',result:'s'},f3);
+  var m3=ce('feMerge',null,f3);ce('feMergeNode',{'in':'s'},m3);ce('feMergeNode',{'in':'SourceGraphic'},m3);
+}
+
+/* ═══════════════════════════════════════
+   DIAGRAM 1 — ALGORITHMIC
+   ═══════════════════════════════════════ */
+(function(){
+  var P='a_',svg=document.getElementById('d1');
+  addDefs(svg,P);
+  var gZ=ce('g',null,svg),gA=ce('g',null,svg),gN=ce('g',null,svg),gL=ce('g',null,svg);
+
+  var topY=112,botY=248,midY=180;
+  var decCX=100,encCX=880,boxW=120,boxH=82;
+  var o1X=290,o2X=640,oW=152,oH=54;
+  var cX=465,cSz=44;
+
+  // Zones
+  ce('rect',{x:18,y:18,width:178,height:340,rx:12,fill:'#F0FDF4',opacity:'.5'},gZ);
+  ce('rect',{x:206,y:18,width:570,height:282,rx:12,fill:'#FAF5FF',opacity:'.4'},gZ);
+  ce('rect',{x:786,y:18,width:178,height:340,rx:12,fill:'#F0FDF4',opacity:'.5'},gZ);
+  tx('SOURCE',34,38,{'font-size':'7','font-weight':'700',fill:'#86EFAC','letter-spacing':'1.2'},gZ);
+  tx('FIELD-BASED PROCESSING',222,38,{'font-size':'7','font-weight':'700',fill:'#C4B5FD','letter-spacing':'1.2'},gZ);
+  tx('OUTPUT',802,38,{'font-size':'7','font-weight':'700',fill:'#86EFAC','letter-spacing':'1.2'},gZ);
+
+  // Decode box
+  ce('rect',{x:decCX-boxW/2,y:midY-boxH/2,width:boxW,height:boxH,rx:10,fill:'#16A34A',filter:'url(#'+P+'fs)'},gN);
+  tx('decode',decCX,midY-18,{'font-size':'14','font-weight':'700',fill:'#fff','text-anchor':'middle'},gN);
+  tx('Decode input,',decCX,midY+2,{'font-size':'8.5',fill:'rgba(255,255,255,.85)','text-anchor':'middle'},gN);
+  tx('split fields',decCX,midY+15,{'font-size':'8.5',fill:'rgba(255,255,255,.85)','text-anchor':'middle'},gN);
+
+  // Decode bullets
+  var bY=midY+boxH/2+16;
+  tx('\u2022  De-Compress',decCX-boxW/2+4,bY,{'font-size':'8.5',fill:'#16A34A'},gL);
+  tx('\u2717  No Colour space conversion',decCX-boxW/2+4,bY+14,{'font-size':'8.5',fill:'#CBD5E1'},gL);
+  tx('\u2717  No Chroma reconstruction',decCX-boxW/2+4,bY+28,{'font-size':'8.5',fill:'#CBD5E1'},gL);
+
+  // Encode box
+  ce('rect',{x:encCX-boxW/2,y:midY-boxH/2,width:boxW,height:boxH,rx:10,fill:'#16A34A',filter:'url(#'+P+'fs)'},gN);
+  tx('encode',encCX,midY-22,{'font-size':'14','font-weight':'700',fill:'#fff','text-anchor':'middle'},gN);
+  tx('Combine fields,',encCX,midY-4,{'font-size':'8.5',fill:'rgba(255,255,255,.85)','text-anchor':'middle'},gN);
+  tx('resample,',encCX,midY+9,{'font-size':'8.5',fill:'rgba(255,255,255,.85)','text-anchor':'middle'},gN);
+  tx('convert to YUV',encCX,midY+22,{'font-size':'8.5',fill:'rgba(255,255,255,.85)','text-anchor':'middle'},gN);
+
+  // Encode bullets
+  tx('\u2022  Field-Weave',encCX+boxW/2-4,bY,{'font-size':'8.5',fill:'#16A34A','text-anchor':'end'},gL);
+  tx('\u2717  No Colour space conversion',encCX+boxW/2-4,bY+14,{'font-size':'8.5',fill:'#CBD5E1','text-anchor':'end'},gL);
+  tx('\u2717  No Chroma sub-sampling',encCX+boxW/2-4,bY+28,{'font-size':'8.5',fill:'#CBD5E1','text-anchor':'end'},gL);
+  tx('\u2022  Compress',encCX+boxW/2-4,bY+42,{'font-size':'8.5',fill:'#16A34A','text-anchor':'end'},gL);
+
+  // Input octagons
+  ce('polygon',{points:octPts(o1X,topY,oW,oH),fill:'#7C3AED',filter:'url(#'+P+'fp)'},gN);
+  tx('Odd Field YUV',o1X,topY-8,{'font-size':'10.5','font-weight':'600',fill:'#fff','text-anchor':'middle'},gN);
+  tx('data @ 25 FPS',o1X,topY+9,{'font-size':'9',fill:'rgba(255,255,255,.75)','text-anchor':'middle'},gN);
+
+  ce('polygon',{points:octPts(o1X,botY,oW,oH),fill:'#7C3AED',filter:'url(#'+P+'fp)'},gN);
+  tx('Even Field YUV',o1X,botY-8,{'font-size':'10.5','font-weight':'600',fill:'#fff','text-anchor':'middle'},gN);
+  tx('data @ 25 FPS',o1X,botY+9,{'font-size':'9',fill:'rgba(255,255,255,.75)','text-anchor':'middle'},gN);
+
+  // Chips
+  drawChip(cX,topY,cSz,'#5B21B6',gN);
+  drawChip(cX,botY,cSz,'#5B21B6',gN);
+
+  // Output octagons
+  ce('polygon',{points:octPts(o2X,topY,oW,oH),fill:'#7C3AED',filter:'url(#'+P+'fp)'},gN);
+  tx('Odd Field YUV',o2X,topY-8,{'font-size':'10.5','font-weight':'600',fill:'#fff','text-anchor':'middle'},gN);
+  tx('data @ 30 FPS',o2X,topY+9,{'font-size':'9',fill:'rgba(255,255,255,.75)','text-anchor':'middle'},gN);
+
+  ce('polygon',{points:octPts(o2X,botY,oW,oH),fill:'#7C3AED',filter:'url(#'+P+'fp)'},gN);
+  tx('Even Field YUV',o2X,botY-8,{'font-size':'10.5','font-weight':'600',fill:'#fff','text-anchor':'middle'},gN);
+  tx('data @ 30 FPS',o2X,botY+9,{'font-size':'9',fill:'rgba(255,255,255,.75)','text-anchor':'middle'},gN);
+
+  // Arrows — decode split
+  var dR=decCX+boxW/2,oL=o1X-oW/2,sp=184;
+  roundArr([[dR,midY-12],[sp,midY-12],[sp,topY],[oL,topY]],gA,P);
+  roundArr([[dR,midY+12],[sp,midY+12],[sp,botY],[oL,botY]],gA,P);
+
+  // Arrows — oct → chip
+  var cL=cX-cSz/2-8,cR=cX+cSz/2+8,oR1=o1X+oW/2,oL2=o2X-oW/2;
+  ce('line',{x1:oR1,y1:topY,x2:cL,y2:topY,stroke:'#94A3B8','stroke-width':'1.6','marker-end':'url(#'+P+'aw)'},gA);
+  ce('line',{x1:oR1,y1:botY,x2:cL,y2:botY,stroke:'#94A3B8','stroke-width':'1.6','marker-end':'url(#'+P+'aw)'},gA);
+
+  // Arrows — chip → oct
+  ce('line',{x1:cR,y1:topY,x2:oL2,y2:topY,stroke:'#94A3B8','stroke-width':'1.6','marker-end':'url(#'+P+'aw)'},gA);
+  ce('line',{x1:cR,y1:botY,x2:oL2,y2:botY,stroke:'#94A3B8','stroke-width':'1.6','marker-end':'url(#'+P+'aw)'},gA);
+
+  // Arrows — merge into encode
+  var eL=encCX-boxW/2,oR2=o2X+oW/2,mg=760;
+  roundArr([[oR2,topY],[mg,topY],[mg,midY-12],[eL,midY-12]],gA,P);
+  roundArr([[oR2,botY],[mg,botY],[mg,midY+12],[eL,midY+12]],gA,P);
+
+  // Frame interpolation bracket
+  var brY=380;
+  ce('line',{x1:290,y1:brY,x2:640,y2:brY,stroke:'#D1D5DB','stroke-width':'1','stroke-dasharray':'4,3'},gL);
+  ce('line',{x1:290,y1:brY-6,x2:290,y2:brY+6,stroke:'#D1D5DB','stroke-width':'1'},gL);
+  ce('line',{x1:640,y1:brY-6,x2:640,y2:brY+6,stroke:'#D1D5DB','stroke-width':'1'},gL);
+  var brMX=465;
+  ce('rect',{x:brMX-68,y:brY-10,width:136,height:20,rx:10,fill:'#fff'},gL);
+  tx('Frame interpolation',brMX,brY+1,{'font-size':'9.5','font-weight':'600',fill:'#9CA3AF','text-anchor':'middle','dominant-baseline':'central','letter-spacing':'.3'},gL);
+})();
+
+/* ═══════════════════════════════════════
+   DIAGRAM 2 — AI
+   ═══════════════════════════════════════ */
+(function(){
+  var P='b_',svg=document.getElementById('d2');
+  addDefs(svg,P);
+  var gZ=ce('g',null,svg),gA=ce('g',null,svg),gN=ce('g',null,svg),gL=ce('g',null,svg);
+
+  var midY=132;
+  var decCX=100,encCX=880,boxW=120,boxH=82;
+  var oLX=310,oRX=665,oW=165,oH=60;
+  var cX=488,cSz=54;
+
+  // Zones
+  ce('rect',{x:18,y:18,width:178,height:260,rx:12,fill:'#F0FDF4',opacity:'.5'},gZ);
+  ce('rect',{x:206,y:18,width:575,height:200,rx:12,fill:'#EFF6FF',opacity:'.4'},gZ);
+  ce('rect',{x:791,y:18,width:172,height:260,rx:12,fill:'#F0FDF4',opacity:'.5'},gZ);
+  tx('SOURCE',34,38,{'font-size':'7','font-weight':'700',fill:'#86EFAC','letter-spacing':'1.2'},gZ);
+  tx('AI PROCESSING',222,38,{'font-size':'7','font-weight':'700',fill:'#93C5FD','letter-spacing':'1.2'},gZ);
+  tx('OUTPUT',807,38,{'font-size':'7','font-weight':'700',fill:'#86EFAC','letter-spacing':'1.2'},gZ);
+
+  // Decode box
+  ce('rect',{x:decCX-boxW/2,y:midY-boxH/2,width:boxW,height:boxH,rx:10,fill:'#16A34A',filter:'url(#'+P+'fs)'},gN);
+  tx('decode',decCX,midY-18,{'font-size':'14','font-weight':'700',fill:'#fff','text-anchor':'middle'},gN);
+  tx('Decode input,',decCX,midY+2,{'font-size':'8.5',fill:'rgba(255,255,255,.85)','text-anchor':'middle'},gN);
+  tx('convert to RGB',decCX,midY+15,{'font-size':'8.5',fill:'rgba(255,255,255,.85)','text-anchor':'middle'},gN);
+
+  // Decode bullets (all active)
+  var bY=midY+boxH/2+16;
+  tx('\u2022  De-Compress',decCX-boxW/2+4,bY,{'font-size':'8.5',fill:'#16A34A'},gL);
+  tx('\u2022  De-Interlace',decCX-boxW/2+4,bY+14,{'font-size':'8.5',fill:'#16A34A'},gL);
+  tx('\u2022  Colour space conversion',decCX-boxW/2+4,bY+28,{'font-size':'8.5',fill:'#16A34A'},gL);
+  tx('\u2022  Chroma reconstruction',decCX-boxW/2+4,bY+42,{'font-size':'8.5',fill:'#16A34A'},gL);
+
+  // Encode box
+  ce('rect',{x:encCX-boxW/2,y:midY-boxH/2,width:boxW,height:boxH,rx:10,fill:'#16A34A',filter:'url(#'+P+'fs)'},gN);
+  tx('encode',encCX,midY-18,{'font-size':'14','font-weight':'700',fill:'#fff','text-anchor':'middle'},gN);
+  tx('Reencode output,',encCX,midY+2,{'font-size':'8.5',fill:'rgba(255,255,255,.85)','text-anchor':'middle'},gN);
+  tx('convert to YUV',encCX,midY+15,{'font-size':'8.5',fill:'rgba(255,255,255,.85)','text-anchor':'middle'},gN);
+
+  // Encode bullets (all active)
+  tx('\u2022  Colour space conversion',encCX+boxW/2-4,bY,{'font-size':'8.5',fill:'#16A34A','text-anchor':'end'},gL);
+  tx('\u2022  Chroma sub-sampling',encCX+boxW/2-4,bY+14,{'font-size':'8.5',fill:'#16A34A','text-anchor':'end'},gL);
+  tx('\u2022  Interlace',encCX+boxW/2-4,bY+28,{'font-size':'8.5',fill:'#16A34A','text-anchor':'end'},gL);
+  tx('\u2022  Compress',encCX+boxW/2-4,bY+42,{'font-size':'8.5',fill:'#16A34A','text-anchor':'end'},gL);
+
+  // Input octagon
+  ce('polygon',{points:octPts(oLX,midY,oW,oH),fill:'#7C3AED',filter:'url(#'+P+'fp)'},gN);
+  tx('Full Frame RGB',oLX,midY-8,{'font-size':'11','font-weight':'600',fill:'#fff','text-anchor':'middle'},gN);
+  tx('data @ 50 FPS',oLX,midY+10,{'font-size':'9.5',fill:'rgba(255,255,255,.8)','text-anchor':'middle'},gN);
+
+  // AI Chip (blue, with glow)
+  drawChip(cX,midY,cSz,'#1E3A8A',gN,'AI');
+  // Extra glow ring
+  ce('circle',{cx:cX,cy:midY,r:cSz*.62,fill:'none',stroke:'rgba(59,130,246,0.12)','stroke-width':'6'},gN);
+
+  // Output octagon
+  ce('polygon',{points:octPts(oRX,midY,oW,oH),fill:'#7C3AED',filter:'url(#'+P+'fp)'},gN);
+  tx('Full Frame RGB',oRX,midY-8,{'font-size':'11','font-weight':'600',fill:'#fff','text-anchor':'middle'},gN);
+  tx('data @ 60 FPS',oRX,midY+10,{'font-size':'9.5',fill:'rgba(255,255,255,.8)','text-anchor':'middle'},gN);
+
+  // Arrows — straight path
+  var dR=decCX+boxW/2,eL=encCX-boxW/2;
+  var oLL=oLX-oW/2,oLR=oLX+oW/2;
+  var oRL=oRX-oW/2,oRR=oRX+oW/2;
+  var cL=cX-cSz/2-8,cR=cX+cSz/2+8;
+
+  ce('line',{x1:dR,y1:midY,x2:oLL,y2:midY,stroke:'#94A3B8','stroke-width':'1.6','marker-end':'url(#'+P+'aw)'},gA);
+  ce('line',{x1:oLR,y1:midY,x2:cL,y2:midY,stroke:'#94A3B8','stroke-width':'1.6','marker-end':'url(#'+P+'aw)'},gA);
+  ce('line',{x1:cR,y1:midY,x2:oRL,y2:midY,stroke:'#94A3B8','stroke-width':'1.6','marker-end':'url(#'+P+'aw)'},gA);
+  ce('line',{x1:oRR,y1:midY,x2:eL,y2:midY,stroke:'#94A3B8','stroke-width':'1.6','marker-end':'url(#'+P+'aw)'},gA);
+
+  // Frame interpolation bracket
+  var brY=290;
+  ce('line',{x1:340,y1:brY,x2:636,y2:brY,stroke:'#D1D5DB','stroke-width':'1','stroke-dasharray':'4,3'},gL);
+  ce('line',{x1:340,y1:brY-6,x2:340,y2:brY+6,stroke:'#D1D5DB','stroke-width':'1'},gL);
+  ce('line',{x1:636,y1:brY-6,x2:636,y2:brY+6,stroke:'#D1D5DB','stroke-width':'1'},gL);
+  ce('rect',{x:cX-68,y:brY-10,width:136,height:20,rx:10,fill:'#fff'},gL);
+  tx('Frame interpolation',cX,brY+1,{'font-size':'9.5','font-weight':'600',fill:'#9CA3AF','text-anchor':'middle','dominant-baseline':'central','letter-spacing':'.3'},gL);
+})();
+
+})();
+</script>
+</body>
+</html>

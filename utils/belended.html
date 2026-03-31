@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NP Frame-Blended Interpolation — 50→60 fps</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',system-ui,sans-serif;background:#F0F2F5;padding:24px;display:flex;justify-content:center}
+.card{background:#fff;border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,.06),0 6px 16px rgba(0,0,0,.04);padding:28px 36px 24px;max-width:1120px;width:100%}
+h2{font-size:17px;font-weight:700;color:#111827;letter-spacing:-.02em;margin-bottom:4px}
+.sub{font-size:12.5px;color:#6B7280;margin-bottom:18px;line-height:1.6}
+svg{width:100%;height:auto;display:block}
+</style>
+</head>
+<body>
+<div class="card">
+<h2>NP Frame-Blended Interpolation — 50 fps → 60 fps</h2>
+<p class="sub">Each output frame is a weighted dissolve of the two temporally nearest input pictures. Blend ratios follow linear interpolation based on temporal distance — no motion estimation is applied. One complete 5 : 6 cadence cycle (100 ms) is shown.</p>
+<svg id="dia" viewBox="0 0 1040 580"></svg>
+</div>
+
+<script>
+(function(){
+var NS='http://www.w3.org/2000/svg',FF="'Inter',system-ui,sans-serif";
+var svg=document.getElementById('dia');
+
+function ce(t,a,p){var e=document.createElementNS(NS,t);if(a)for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}
+function tx(s,x,y,a,p){var o={x:''+x,y:''+y,'font-family':FF};if(a)for(var k in a)o[k]=a[k];var e=ce('text',o,p);e.textContent=s;return e}
+
+var defs=ce('defs',null,svg);
+
+/* ── shadow filter ── */
+var fl=ce('filter',{id:'sh',x:'-6%',y:'-8%',width:'112%',height:'124%'},defs);
+ce('feGaussianBlur',{'in':'SourceAlpha',stdDeviation:'3.5',result:'b'},fl);
+ce('feOffset',{dx:'0',dy:'2',result:'o'},fl);
+ce('feFlood',{'flood-color':'#000','flood-opacity':'.09',result:'c'},fl);
+ce('feComposite',{'in':'c',in2:'o',operator:'in',result:'s'},fl);
+var mr=ce('feMerge',null,fl);ce('feMergeNode',{'in':'s'},mr);ce('feMergeNode',{'in':'SourceGraphic'},mr);
+
+/* ── colours ── */
+var C=['#7C3AED','#2563EB','#0891B2','#059669','#D97706','#DC2626'];
+
+/* ── time→x mapping ── */
+var x0=125,xs=8;
+function tX(ms){return x0+ms*xs}
+
+/* ── layout ── */
+var INY=70,INH=74,INW=68;
+var OUTY=400,OUTH=74,OUTW=62;
+var cTop=INY+INH, cBot=OUTY, cMid=(cTop+cBot)/2;
+
+/* ── input frame times ── */
+var iT=[0,20,40,60,80,100];
+
+/* ── output data: t=time, b=[{i=input index, n=numerator /6}] ── */
+var OD=[
+  {t:0,      b:[{i:0,n:6}]},
+  {t:16.667, b:[{i:0,n:1},{i:1,n:5}]},
+  {t:33.333, b:[{i:1,n:2},{i:2,n:4}]},
+  {t:50,     b:[{i:2,n:3},{i:3,n:3}]},
+  {t:66.667, b:[{i:3,n:4},{i:4,n:2}]},
+  {t:83.333, b:[{i:4,n:5},{i:5,n:1}]}
+];
+
+/* ── output horizontal gradients (smoothed fill) ── */
+OD.forEach(function(o,j){
+  if(o.b.length===2){
+    var g=ce('linearGradient',{id:'og'+j,x1:'0',y1:'0',x2:'1',y2:'0'},defs);
+    var p=o.b[0].n/6*100;
+    ce('stop',{offset:Math.max(0,p-5)+'%','stop-color':C[o.b[0].i]},g);
+    ce('stop',{offset:Math.min(100,p+5)+'%','stop-color':C[o.b[1].i]},g);
+  }
+});
+
+/* ── layer groups ── */
+var gBg=ce('g',null,svg);
+var gGuide=ce('g',null,svg);
+var gConn=ce('g',null,svg);
+var gFr=ce('g',null,svg);
+var gTag=ce('g',null,svg);
+var gLbl=ce('g',null,svg);
+
+/* ── background zones ── */
+ce('rect',{x:58,y:INY-24,width:tX(104)-58,height:INH+36,rx:12,fill:'#FAF5FF',opacity:'.32'},gBg);
+ce('rect',{x:58,y:OUTY-24,width:tX(88)-58,height:OUTH+60,rx:12,fill:'#F0FDF4',opacity:'.32'},gBg);
+
+/* ── section headings ── */
+tx('INPUT \u2014 50 fps',72,INY-9,{'font-size':'9','font-weight':'700',fill:'#A78BFA','letter-spacing':'1.2'},gLbl);
+tx('OUTPUT \u2014 60 fps',72,OUTY-9,{'font-size':'9','font-weight':'700',fill:'#6EE7B7','letter-spacing':'1.2'},gLbl);
+
+/* ── faint vertical guides ── */
+for(var i=0;i<6;i++){
+  ce('line',{x1:tX(iT[i]),y1:cTop+4,x2:tX(iT[i]),y2:cBot-4,stroke:C[i],'stroke-width':'.6','stroke-dasharray':'2,6',opacity:'.12'},gGuide);
+}
+
+/* ═══════════  INPUT FRAMES  ═══════════ */
+for(var i=0;i<6;i++){
+  var cx=tX(iT[i]),ghost=i===5,fx=cx-INW/2;
+  if(ghost){
+    ce('rect',{x:fx,y:INY,width:INW,height:INH,rx:8,fill:'none',stroke:C[i],'stroke-width':'1.5','stroke-dasharray':'5,4',opacity:'.28'},gFr);
+    tx('I'+(i+1),cx,INY+INH/2-5,{'font-size':'16','font-weight':'700','text-anchor':'middle',fill:C[i],opacity:'.28'},gFr);
+    tx(iT[i]+' ms',cx,INY+INH/2+14,{'font-size':'8','text-anchor':'middle',fill:C[i],opacity:'.2'},gFr);
+  } else {
+    ce('rect',{x:fx,y:INY,width:INW,height:INH,rx:8,fill:C[i],filter:'url(#sh)'},gFr);
+    /* subtle inner icon (film frame lines) */
+    ce('rect',{x:fx+6,y:INY+6,width:INW-12,height:INH-30,rx:3,fill:'none',stroke:'rgba(255,255,255,.18)','stroke-width':'1'},gFr);
+    tx('I'+(i+1),cx,INY+INH/2-5,{'font-size':'16','font-weight':'700','text-anchor':'middle',fill:'#fff'},gFr);
+    tx(iT[i]+' ms',cx,INY+INH/2+14,{'font-size':'8','text-anchor':'middle',fill:'rgba(255,255,255,.6)'},gFr);
+  }
+}
+
+/* ═══════════  OUTPUT FRAMES  ═══════════ */
+OD.forEach(function(o,j){
+  var cx=tX(o.t),fx=cx-OUTW/2;
+  var fill=o.b.length===1?C[o.b[0].i]:'url(#og'+j+')';
+
+  /* main frame */
+  ce('rect',{x:fx,y:OUTY,width:OUTW,height:OUTH,rx:8,fill:fill,filter:'url(#sh)'},gFr);
+  ce('rect',{x:fx+5,y:OUTY+5,width:OUTW-10,height:OUTH-28,rx:3,fill:'none',stroke:'rgba(255,255,255,.18)','stroke-width':'1'},gFr);
+  tx('O'+(j+1),cx,OUTY+OUTH/2-5,{'font-size':'14','font-weight':'700','text-anchor':'middle',fill:'#fff'},gFr);
+  var tStr=o.t===0?'0 ms':(Math.round(o.t*10)/10)+' ms';
+  tx(tStr,cx,OUTY+OUTH/2+13,{'font-size':'7.5','text-anchor':'middle',fill:'rgba(255,255,255,.55)'},gFr);
+
+  /* composition strip (thin bar below frame) */
+  var sY=OUTY+OUTH+5,sH=5;
+  if(o.b.length===1){
+    ce('rect',{x:fx,y:sY,width:OUTW,height:sH,rx:2.5,fill:C[o.b[0].i],opacity:'.55'},gFr);
+  } else {
+    var w1=OUTW*o.b[0].n/6, w2=OUTW-w1;
+    ce('rect',{x:fx,y:sY,width:w1,height:sH,rx:0,fill:C[o.b[0].i],opacity:'.55'},gFr);
+    ce('rect',{x:fx+w1,y:sY,width:w2,height:sH,rx:0,fill:C[o.b[1].i],opacity:'.55'},gFr);
+    /* round the container */
+    ce('rect',{x:fx,y:sY,width:OUTW,height:sH,rx:2.5,fill:'none',stroke:'#fff','stroke-width':'.6'},gFr);
+  }
+
+  /* blend formula */
+  var parts=[];
+  o.b.forEach(function(bl){ parts.push(Math.round(bl.n/6*100)+'% I'+(bl.i+1)); });
+  tx(parts.join(' + '),cx,sY+sH+13,{'font-size':'8','text-anchor':'middle',fill:'#9CA3AF','font-weight':'500'},gLbl);
+});
+
+/* ═══════════  CONNECTIONS  ═══════════ */
+OD.forEach(function(o,j){
+  var ocx=tX(o.t);
+  o.b.forEach(function(bl,bIdx){
+    var icx=tX(iT[bl.i]);
+    var w=bl.n/6;
+    var sw=0.8+w*3.5;
+    var op=0.08+w*0.52;
+
+    /* S-curve */
+    var dx=Math.abs(icx-ocx);
+    var cpOff=Math.max(55,dx*0.42);
+    var d='M'+icx+','+cTop+' C'+icx+','+(cTop+cpOff)+' '+ocx+','+(cBot-cpOff)+' '+ocx+','+cBot;
+    ce('path',{d:d,fill:'none',stroke:C[bl.i],'stroke-width':''+sw,opacity:''+op},gConn);
+
+    /* percentage pill at curve midpoint */
+    var lx=(icx+ocx)/2;
+    var ly=cMid + (o.b.length===2?(bIdx===0?-11:11):0);
+    var pct=Math.round(w*100);
+    var pw=pct===100?36:28,ph=16;
+    var pillOp=Math.min(1,op+0.38);
+    ce('rect',{x:lx-pw/2,y:ly-ph/2,width:pw,height:ph,rx:ph/2,fill:'#fff',stroke:C[bl.i],'stroke-width':'.8',opacity:''+pillOp},gConn);
+    tx(pct+'%',lx,ly+3.5,{'font-size':'8','font-weight':'700','text-anchor':'middle',fill:C[bl.i],opacity:''+Math.min(1,pillOp+0.15)},gConn);
+  });
+});
+
+/* ═══════════  CALLOUT TAGS  ═══════════ */
+/* O1 — pure copy */
+(function(){
+  var cx=tX(0),ty=OUTY-6;
+  var tw=38,th=14;
+  ce('rect',{x:cx-tw/2,y:ty-th,width:tw,height:th,rx:th/2,fill:'#16A34A'},gTag);
+  tx('COPY',cx,ty-3.5,{'font-size':'7','font-weight':'700','text-anchor':'middle',fill:'#fff','letter-spacing':'.6'},gTag);
+})();
+
+/* O4 — worst-case 50 : 50 blend */
+(function(){
+  var cx=tX(50),ty=OUTY-6;
+  var tw=52,th=14;
+  ce('rect',{x:cx-tw/2,y:ty-th,width:tw,height:th,rx:th/2,fill:'#F59E0B'},gTag);
+  tx('50 : 50',cx,ty-3.5,{'font-size':'7','font-weight':'700','text-anchor':'middle',fill:'#fff','letter-spacing':'.4'},gTag);
+})();
+
+/* ═══════════  CYCLE BRACKET  ═══════════ */
+(function(){
+  var brY=550, brL=tX(0), brR=tX(100);
+  ce('line',{x1:brL,y1:brY,x2:brR,y2:brY,stroke:'#D1D5DB','stroke-width':'1','stroke-dasharray':'4,3'},gLbl);
+  ce('line',{x1:brL,y1:brY-5,x2:brL,y2:brY+5,stroke:'#D1D5DB','stroke-width':'1'},gLbl);
+  ce('line',{x1:brR,y1:brY-5,x2:brR,y2:brY+5,stroke:'#D1D5DB','stroke-width':'1'},gLbl);
+  var mx=(brL+brR)/2;
+  ce('rect',{x:mx-72,y:brY-9,width:144,height:18,rx:9,fill:'#fff'},gLbl);
+  tx('100 ms cadence cycle  \u2014  5 in \u2192 6 out',mx,brY+2,{'font-size':'8.5','font-weight':'600',fill:'#9CA3AF','text-anchor':'middle','dominant-baseline':'central'},gLbl);
+})();
+
+/* ═══════════  TIME RULER (subtle) ═══════════ */
+(function(){
+  var ry=cBot+OUTH+42;
+  /* we already have formulas there — skip dedicated ruler, the in-frame labels suffice */
+})();
+
+})();
+</script>
+</body>
+</html>

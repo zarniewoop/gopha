@@ -1,2 +1,15 @@
 .DS_Store
-.DS_Store
+.venv
+.tmp
+.ssh
+*.mp3
+*.mp4
+*.mov
+*.mxf
+*.wav
+*.flac
+*.mkv
+*.avi
+*.yuv
+*.y4m
+*.ts

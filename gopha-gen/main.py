@@ -1,9 +1,8 @@
 import argparse
 from config import load_config
 from timebase import Timebase
-from scenes.procedural_discs import ProceduralDiscsScene
+from scenes import create_scene
 from yuv import YUVWriter
-import os
 
 def main():
     parser = argparse.ArgumentParser(description="FRCGen v2")
@@ -12,33 +11,37 @@ def main():
 
     config = load_config(args.config)
 
-    width = config["video"]["width"]
-    height = config["video"]["height"]
-    fps = config["video"]["fps"]
-    duration = config["video"]["duration"]
-    total_frames = int(fps * duration)
+    width = int(config["video"]["width"])
+    height = int(config["video"]["height"])
+    fps = float(config["video"]["fps"])
+    duration = float(config["video"]["duration"])
+    total_frames = int(round(fps * duration))
 
     tb = Timebase(
         fps=fps,
-        anchor_period=config["timebase"]["anchor_period"],
-        anchor_snap=0.5 / fps
+        anchor_period=config.get("timebase", {}).get("anchor_period", 1.0),
+        anchor_snap=0.5 / fps,
     )
 
-    scene = ProceduralDiscsScene(width, height, config)
-
+    scene_name = config.get("scene", {}).get("name", "procedural_discs")
+    scene = create_scene(scene_name, width, height, config)
     writer = YUVWriter(config)
 
-    print("Rendering...")
-    for i in range(total_frames):
-        t = tb.time_for_frame(i)
-        rgb = scene.render(t)
-        writer.write_frame(rgb)
+    print(f"Rendering scene '{scene_name}' — {total_frames} frames at {fps} fps...")
+    progress_interval = max(1, int(round(fps)))
 
-        if i % fps == 0:
-            print(f"Rendered {i}/{total_frames}")
+    try:
+        for i in range(total_frames):
+            t = tb.time_for_frame(i)
+            rgb = scene.render(t, frame_index=i)
+            writer.write_frame(rgb)
 
-    writer.close()
-    print("Done.")
+            if i % progress_interval == 0:
+                print(f"  Rendered {i}/{total_frames}")
+    finally:
+        writer.close()
+
+    print(f"Done. Output: {config['output']['filename']}")
 
 if __name__ == "__main__":
     main()

@@ -1,0 +1,30 @@
+video:
+  width: 1920
+  height: 1080
+  fps: 50
+  duration: 3
+
+timebase:
+  anchor_period: 1.0
+
+hdr:
+  peak_luminance: 1000
+
+scene:
+  name: slate
+  image_path: ./bgnd.png   # must be exactly 1920x1080
+  font_path: /System/Library/Fonts/Helvetica.ttc   # optional
+  font_size: 80
+  text_x: 80
+  text_y: 80
+  text_color: [1000, 1000, 1000]   # nit scale white
+  bg_color: [0, 0, 0]              # nit scale black
+
+output:
+  filename: still_counter_50p_V2.y4m
+  bitdepth: 10
+  transfer: pq
+  matrix: bt2020
+  chroma: "422"
+  range: "limited"
+  frame_tags: "XTEST=1"

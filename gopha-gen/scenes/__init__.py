@@ -1,9 +1,11 @@
 from .procedural_discs import ProceduralDiscsScene
 from .slate import SlateScene
+from .procedural_discs_v2 import ProceduralDiscsSceneV2
 
 SCENE_REGISTRY = {
     "procedural_discs": ProceduralDiscsScene,
     "slate": SlateScene,
+    "procedural_discs_v2": ProceduralDiscsSceneV2
 }
 
 

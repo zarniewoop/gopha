@@ -30,6 +30,30 @@ scene:
       rotation_speed: 0.1
       n_gaps: 2            # number of ring gaps
       gap_width: 0.03       # width of each gap
+    - color: [0.8, 0.5, 0.4]
+      size: 0.1
+      radius: 0.2
+      speed_x: 0.7
+      speed_y: 0.7
+      rotation_speed: 0.1
+      n_gaps: 2            # number of ring gaps
+      gap_width: 0.03       # width of each gap
+    - color: [0.8, 0.5, 0.4]
+      size: 0.1
+      radius: 0.2
+      speed_x: 0.7
+      speed_y: 0.7
+      rotation_speed: 0.1
+      n_gaps: 2            # number of ring gaps
+      gap_width: 0.03       # width of each gap
+    - color: [0.8, 0.5, 0.4]
+      size: 0.1
+      radius: 0.2
+      speed_x: 0.7
+      speed_y: 0.7
+      rotation_speed: 0.1
+      n_gaps: 2            # number of ring gaps
+      gap_width: 0.03       # width of each gap
 
 output:
   filename: output_50p_v4_420.y4m
